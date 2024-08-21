@@ -16,8 +16,25 @@ import {
   RemoveFromReversedGrouMap,
   RemoveFromReversedActiveUsersMap,
 } from "../utils/chatFunctions";
+import { Request, Response, NextFunction, RequestHandler } from "express";
+import { Message } from "../models/MessageSchema";
+import { getTokenFunc } from "./usercontroller";
+import jwt_decode from "jwt-decode";
+import { clearfiles } from "../utils/clearFiles";
+import path from "path";
+import fs, { renameSync } from "fs";
+import { s3 } from "../config/aws_s3";
 
 dotenv.config();
+
+type Messages = {
+  sender: string;
+  groupId: Number;
+  message: string;
+  type: string;
+  timeStamp: string;
+  status: Map<string, string>;
+};
 
 subClient.subscribe("MESSAGES", (err, count) => {
   if (err) {
@@ -67,10 +84,11 @@ export const chatController = async (
         JSON.stringify({
           message: msg.message,
           groupID: msg.group_id,
-          username: msg.username,
+          sender: msg.sender,
           id: socket.id,
           timeStamp: msg.timeStamp,
           type: msg.type,
+          images: msg.images,
         })
       );
     });
@@ -78,7 +96,7 @@ export const chatController = async (
       console.log("disconnecting.....");
     });
     socket.on("disconnect", async () => {
-      console.log("User disconnected");
+      console.log("User disconnected " + socket.id);
       if (!leaveRoomTriggered) {
         await RemoveFromReversedGrouMap(socket.id);
       }
@@ -91,16 +109,177 @@ export const chatController = async (
   subClient.on("message", async (channel, message) => {
     if (channel === "MESSAGES") {
       const parsedMessage = JSON.parse(message);
-      io.to(parsedMessage.groupID).emit("message", {
-        message: parsedMessage.message,
-        username: parsedMessage.username,
-        id: parsedMessage.id,
-        timeStamp: parsedMessage.timeStamp,
-        type: parsedMessage.type,
-      });
+      if (parsedMessage.type === "text") {
+        io.to(parsedMessage.groupID).emit("message", {
+          message: parsedMessage.message,
+          sender: parsedMessage.sender,
+          id: parsedMessage.id,
+          timeStamp: parsedMessage.timeStamp,
+          type: parsedMessage.type,
+        });
+      } else {
+        io.to(parsedMessage.groupID).emit("message", {
+          message: parsedMessage.message,
+          sender: parsedMessage.sender,
+          id: parsedMessage.id,
+          timeStamp: parsedMessage.timeStamp,
+          type: parsedMessage.type,
+          images: parsedMessage.images,
+        });
+      }
       await produceMessage(JSON.stringify(parsedMessage));
     }
   });
 };
 
-module.exports = { chatController };
+export const getMessagesByGroup: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response> => {
+  try {
+    const { group_id } = req.params;
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    await Message.updateMany(
+      {
+        groupId: parseInt(group_id),
+        $or: [
+          { [`status.${username}`]: "sent" },
+          { [`status.${username}`]: "delivered" },
+        ],
+      },
+      {
+        $set: {
+          [`status.${username}`]: "read",
+        },
+      }
+    );
+
+    const messages: Array<Messages> = await Message.find({
+      groupId: parseInt(group_id),
+    });
+
+    return res.status(200).json({ success: true, message: messages });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};
+
+export const updateDeliverStatusOnConnection: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    await Message.updateMany(
+      {
+        $or: [{ [`status.${username}`]: "sent" }],
+      },
+      {
+        $set: {
+          [`status.${username}`]: "delivered",
+        },
+      }
+    );
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Messages Updated successfully" });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};
+
+export const uploadMessageImages: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response> => {
+  try {
+    const files_ = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const files: Express.Multer.File[] = files_["images"];
+
+    const fileTypes = /jpeg|jpg|png|gif/;
+    let filenames: Array<string> = [];
+    let imageUrls: Array<string> = [];
+
+    if (Array.isArray(files)) {
+      if (files.length > 8) {
+        clearfiles(files);
+        return res.status(400).json({
+          success: false,
+          message: "Please upload upto 8 images only",
+        });
+      }
+
+      for (const file of files) {
+        const extname = fileTypes.test(
+          path.extname(file.originalname).toLowerCase()
+        );
+        const mimetype = fileTypes.test(file.mimetype);
+
+        if (!extname || !mimetype) {
+          clearfiles(req.files);
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
+          });
+        }
+
+        const date = Date.now();
+        const filename = "uploads/userImages/" + date + file.originalname;
+        renameSync(file.path, filename);
+        filenames.push(filename);
+
+        const fileContent = fs.readFileSync(filename);
+
+        const params = {
+          Bucket: "w-groupchat-images",
+          Key: `${Date.now()}_${file.originalname}`,
+          Body: fileContent,
+          ContentType: "image/jpeg",
+        };
+
+        try {
+          const s3Response = await s3.upload(params).promise();
+          imageUrls.push(s3Response.Location);
+        } catch (error) {
+          clearfiles(req.files);
+          return res.status(400).json({
+            success: false,
+            message: "Error while uploading images try again",
+          });
+        }
+      }
+    }
+
+    if (filenames) {
+      filenames.forEach((filename) => {
+        fs.unlinkSync(filename);
+      });
+    }
+
+    return res.status(200).json({ success: true, message: imageUrls });
+  } catch (err) {
+    console.log(err);
+    clearfiles(req.files);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};

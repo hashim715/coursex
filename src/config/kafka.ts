@@ -15,16 +15,16 @@ const get_active_users = async (usernames: Array<string>) => {
     let active_users: ActiveUsersMapType;
 
     if (active_users_cache) {
-      active_users = JSON.parse(active_users_cache);
+      active_users = DeserializeActiveUsersMap(active_users_cache);
     }
-    const active_usernames = usernames.find((username) => {
+    const active_users_array: Array<string> = [];
+    usernames.forEach((username) => {
       if (active_users.get(username)) {
-        return username;
+        active_users_array.push(username);
       }
     });
-    return active_usernames;
+    return active_users_array;
   } catch (err) {
-    console.log(err);
     return null;
   }
 };
@@ -43,6 +43,7 @@ const get_active_room_users = async (groupId: string) => {
     });
     return usernames;
   } catch (err) {
+    console.log(err);
     return null;
   }
 };
@@ -87,11 +88,69 @@ export const produceMessage = async (message: string): Promise<void> => {
 };
 
 const saveMessageToDB = async (message: string) => {
-  const parsedMessage = JSON.parse(message);
+  try {
+    const parsedMessage = JSON.parse(message);
 
-  const active_room_users = await get_active_room_users(parsedMessage.groupID);
-  if (active_room_users) {
-    console.log(active_room_users);
+    const active_room_users = await get_active_room_users(
+      parsedMessage.groupID
+    );
+
+    const group_members = await prisma.group.findUnique({
+      where: { id: parseInt(parsedMessage.groupID) },
+      select: { users: true },
+    });
+
+    let active_users: Array<string> = [];
+
+    group_members.users.forEach((user) => {
+      if (!active_room_users.includes(user.username)) {
+        active_users.push(user.username);
+      }
+    });
+
+    active_users = await get_active_users(active_users);
+
+    const status = new Map<string, string>();
+
+    active_room_users.forEach((username) => {
+      status.set(username, "read");
+    });
+
+    active_users.forEach((username) => {
+      status.set(username, "delivered");
+    });
+
+    group_members.users.forEach((user) => {
+      if (
+        !active_room_users.includes(user.username) &&
+        !active_users.includes(user.username)
+      ) {
+        status.set(user.username, "sent");
+      }
+    });
+
+    if (parsedMessage.type === "text") {
+      const message_created = await Message.create({
+        sender: parsedMessage.sender,
+        groupId: parseInt(parsedMessage.groupID),
+        message: parsedMessage.message,
+        timeStamp: parsedMessage.timeStamp,
+        type: parsedMessage.type,
+        status: status,
+      });
+    } else {
+      const message_created = await Message.create({
+        sender: parsedMessage.sender,
+        groupId: parseInt(parsedMessage.groupID),
+        message: parsedMessage.message,
+        timeStamp: parsedMessage.timeStamp,
+        type: parsedMessage.type,
+        images: parsedMessage.images,
+        status: status,
+      });
+    }
+  } catch (err) {
+    console.log(err);
   }
 };
 
@@ -112,7 +171,9 @@ export const startMessageConsumer = async (): Promise<void> => {
       const parsedMessage = JSON.parse(message.value.toString());
       await saveMessageToDB(JSON.stringify(parsedMessage));
       console.log(
-        `Message from ${topic} partition ${partition} message is ${parsedMessage.message}`
+        `Message from ${topic} partition ${partition} message is ${
+          parsedMessage.type === "text" ? parsedMessage.message : "Images"
+        }`
       );
     },
   });

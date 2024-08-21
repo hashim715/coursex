@@ -12,7 +12,7 @@ import { s3 } from "../config/aws_s3";
 import { deleteImageByUrl } from "../utils/deleteimagefroms3";
 import QRCode from "qrcode";
 
-const getTokenFunc = (req: Request) => {
+export const getTokenFunc = (req: Request) => {
   let token: string;
   if (
     req.headers.authorization &&

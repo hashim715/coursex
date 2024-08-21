@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@main.dexutzy.mongodb.net/?retryWrites=true&w=majority&appName=Main`;
+const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@main.dexutzy.mongodb.net/w-app-db?retryWrites=true&w=majority&appName=Main`;
 
 const clientOptions = {
   serverApi: {

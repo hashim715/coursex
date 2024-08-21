@@ -8,7 +8,9 @@ import { userRouter } from "./routes/userRoutes";
 import { clearRedisRouter } from "./routes/redisClearRoutes";
 import { testingChatRouter } from "./routes/testingChatRoutes";
 import { tokenRouter } from "./routes/tokenRoutes";
+import { chatRouter } from "./routes/chatRoutes";
 import { connectDB } from "./config/mongo";
+import { redisClient } from "./config/redis";
 import bodyParser from "body-parser";
 import path from "path";
 
@@ -33,6 +35,8 @@ app.use("/api/chat", testingChatRouter);
 
 app.use("/api/token", tokenRouter);
 
+app.use("/api/chats", chatRouter);
+
 const server: http.Server = http.createServer(app);
 
 chatController(app, server);
@@ -45,8 +49,10 @@ const start = async (): Promise<void> => {
       console.log(`Listening on port ${PORT}`);
     });
     await connectDB();
+    await redisClient.flushdb();
   } catch (err) {
     console.log(err);
+    await redisClient.flushdb();
   }
 };
 start();

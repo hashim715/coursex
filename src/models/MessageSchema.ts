@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 const MessageSchema: Schema = new mongoose.Schema(
-  { userId: Number, groupId: Number, message: String },
+  { sender: String, groupId: Number, message: String },
   { strict: false }
 );
 
