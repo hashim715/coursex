@@ -5,7 +5,8 @@
   "scripts": {
     "start": "nodemon",
     "build": "tsc",
-    "create-topic": "node dist/config/createkafkatopic.js"
+    "create-topic": "node dist/config/createkafkatopic.js",
+    "dev": "nodemon dist/index.js"
   },
   "keywords": [],
   "author": "Muhammad Hashim",

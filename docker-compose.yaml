@@ -1,0 +1,9 @@
+version: "2.17.2"
+services:
+  backend:
+    image: w-app-backend
+    container_name: w-app-backend
+    build: .
+    env_file: .env
+    ports:
+      - "5000:5000"
