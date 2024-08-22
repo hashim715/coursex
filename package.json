@@ -4,7 +4,7 @@
   "description": "this is a genz chat app",
   "scripts": {
     "start": "nodemon",
-    "build": "tsc",
+    "build": "tsc --force",
     "create-topic": "node dist/config/createkafkatopic.js",
     "dev": "nodemon dist/index.js"
   },
