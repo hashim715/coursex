@@ -12,6 +12,21 @@ import { s3 } from "../config/aws_s3";
 import { deleteImageByUrl } from "../utils/deleteimagefroms3";
 import QRCode from "qrcode";
 
+type User = {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  password: string;
+  year: string;
+  college: string | null;
+  image: string | null;
+  courses: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  token: string | null;
+};
+
 export const getTokenFunc = (req: Request) => {
   let token: string;
   if (
@@ -432,7 +447,9 @@ export const isUserintheGroup: RequestHandler = async (
 
     const user = await prisma.user.findFirst({ where: { username: username } });
 
-    const isUser = group_members.users.find((member) => member.id === user.id);
+    const isUser = group_members.users.find(
+      (member: User) => member.id === user.id
+    );
 
     if (!isUser) {
       return res.status(200).json({ success: true, user: false });

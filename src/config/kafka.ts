@@ -102,7 +102,22 @@ const saveMessageToDB = async (message: string) => {
 
     let active_users: Array<string> = [];
 
-    group_members.users.forEach((user) => {
+    type User = {
+      id: number;
+      username: string;
+      name: string;
+      email: string;
+      password: string;
+      year: string;
+      college: string | null;
+      image: string | null;
+      courses: string[];
+      createdAt: Date;
+      updatedAt: Date;
+      token: string | null;
+    };
+
+    group_members.users.forEach((user: User) => {
       if (!active_room_users.includes(user.username)) {
         active_users.push(user.username);
       }
@@ -120,7 +135,7 @@ const saveMessageToDB = async (message: string) => {
       status.set(username, "delivered");
     });
 
-    group_members.users.forEach((user) => {
+    group_members.users.forEach((user: User) => {
       if (
         !active_room_users.includes(user.username) &&
         !active_users.includes(user.username)
