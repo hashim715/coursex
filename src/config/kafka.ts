@@ -61,15 +61,21 @@ export const createTopic = async (): Promise<void> => {
   await admin.connect();
   console.log("Admin connected");
 
-  await admin.createTopics({
-    topics: [
-      {
-        topic: "MESSAGES",
-        numPartitions: 4,
-      },
-    ],
-  });
-  console.log("Topic created messages");
+  // Check if the topic exists
+  const existingTopics = await admin.listTopics();
+  if (!existingTopics.includes("MESSAGES")) {
+    await admin.createTopics({
+      topics: [
+        {
+          topic: "MESSAGES",
+          numPartitions: 4,
+        },
+      ],
+    });
+    console.log("Topic created messages");
+  } else {
+    console.log("Topic already exists: MESSAGES");
+  }
 
   await admin.disconnect();
 };

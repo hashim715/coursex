@@ -13,6 +13,7 @@ import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
 import path from "path";
+import { createTopic } from "./config/kafka";
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ app.use("/api/chats", chatRouter);
 const server: http.Server = http.createServer(app);
 
 chatController(app, server);
+
+createTopic();
 
 startMessageConsumer();
 
