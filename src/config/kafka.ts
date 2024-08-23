@@ -181,8 +181,6 @@ const saveMessageToDB = async (message: string) => {
 export const startMessageConsumer = async (): Promise<void> => {
   const consumer = kafka.consumer({
     groupId: "0",
-    sessionTimeout: 30000,
-    heartbeatInterval: 3000,
   });
   await consumer.connect();
 
@@ -196,6 +194,7 @@ export const startMessageConsumer = async (): Promise<void> => {
       heartbeat,
       pause,
     }): Promise<void> => {
+      console.log("hey i am consumer here....");
       const parsedMessage = await JSON.parse(message.value.toString());
       await saveMessageToDB(JSON.stringify(parsedMessage));
       console.log(
