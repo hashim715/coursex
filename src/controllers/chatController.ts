@@ -162,10 +162,10 @@ export const getMessagesByGroup: RequestHandler = async (
     const messages = await Message.find({
       groupId: parseInt(group_id),
     })
-      .sort({ timeStamp: 1 })
+      .sort({ timeStamp: -1 })
       .limit(10);
 
-    return res.status(200).json({ success: true, message: messages });
+    return res.status(200).json({ success: true, message: messages.reverse() });
   } catch (err) {
     console.log(err);
     return res
