@@ -10,7 +10,7 @@ import {
   removeFromSocketsList,
 } from "../utils/chatFunctions";
 
-import { redisClient } from "../config/redis";
+import { redisClient } from "../config/redisClient";
 
 export const addToRoom: RequestHandler = async (
   req: Request,
@@ -198,12 +198,10 @@ export const removeFromActiveUserMapsUsingReverseMaps: RequestHandler = async (
   try {
     const { socket_id } = req.body;
     await RemoveFromReversedActiveUsersMap(socket_id);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Removed from reverse active user maps",
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Removed from reverse active user maps",
+    });
   } catch (err) {
     return res
       .status(500)

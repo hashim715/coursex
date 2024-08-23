@@ -10,7 +10,7 @@ import { testingChatRouter } from "./routes/testingChatRoutes";
 import { tokenRouter } from "./routes/tokenRoutes";
 import { chatRouter } from "./routes/chatRoutes";
 import { connectDB } from "./config/mongo";
-import { redisClient } from "./config/redis";
+import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
 import path from "path";
 

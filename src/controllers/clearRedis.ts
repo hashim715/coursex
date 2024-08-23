@@ -1,4 +1,4 @@
-import { redisClient } from "../config/redis";
+import { redisClient } from "../config/redisClient";
 import { Request, Response, NextFunction, RequestHandler } from "express";
 
 export const clearRedis: RequestHandler = async (

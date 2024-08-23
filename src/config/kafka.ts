@@ -6,8 +6,8 @@ import {
   DeserializeGroupMap,
   DeserializeActiveUsersMap,
 } from "../utils/chatFunctions";
-import { redisClient } from "../config/redis";
-import { prisma } from "../config/postgres";
+import { redisClient } from "./redisClient";
+import { prisma } from "./postgres";
 import dotenv from "dotenv";
 
 dotenv.config();
