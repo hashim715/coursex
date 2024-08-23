@@ -179,7 +179,7 @@ const saveMessageToDB = async (message: string) => {
 };
 
 export const startMessageConsumer = async (): Promise<void> => {
-  const consumer = kafka.consumer({ groupId: "0" });
+  const consumer = kafka.consumer({ groupId: "1" });
   await consumer.connect();
 
   await consumer.subscribe({ topic: "MESSAGES", fromBeginning: true });
