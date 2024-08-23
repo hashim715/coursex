@@ -7,7 +7,7 @@ export const pubClient: Redis = new Redis(process.env.REDIS_URI);
 
 export const subClient: Redis = new Redis(process.env.REDIS_URI);
 
-export const redisClient: Redis = new Redis(process.env.REDIS_URI);
+export const redisClient: Redis = new Redis(process.env.REDISCLIENTURI);
 
 pubClient.on("connect", () => {
   console.log("pubClient connected");
