@@ -68,7 +68,7 @@ export const createTopic = async (): Promise<void> => {
       topics: [
         {
           topic: "MESSAGES",
-          numPartitions: 1,
+          numPartitions: 2,
         },
       ],
     });
@@ -89,7 +89,7 @@ export const produceMessage = async (message: string): Promise<void> => {
   console.log("Producer connected");
 
   await producer.send({
-    messages: [{ key: `message-${Date.now()}`, value: message }],
+    messages: [{ key: `message-${Date.now()}`, value: message, partition: 1 }],
     topic: "MESSAGES",
   });
 
@@ -179,7 +179,11 @@ const saveMessageToDB = async (message: string) => {
 };
 
 export const startMessageConsumer = async (): Promise<void> => {
-  const consumer = kafka.consumer({ groupId: "1" });
+  const consumer = kafka.consumer({
+    groupId: "0",
+    sessionTimeout: 30000,
+    heartbeatInterval: 3000,
+  });
   await consumer.connect();
 
   await consumer.subscribe({ topic: "MESSAGES", fromBeginning: true });
@@ -192,7 +196,7 @@ export const startMessageConsumer = async (): Promise<void> => {
       heartbeat,
       pause,
     }): Promise<void> => {
-      const parsedMessage = JSON.parse(message.value.toString());
+      const parsedMessage = await JSON.parse(message.value.toString());
       await saveMessageToDB(JSON.stringify(parsedMessage));
       console.log(
         `Message from ${topic} partition ${partition} message is ${
