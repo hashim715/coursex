@@ -68,7 +68,7 @@ export const createTopic = async (): Promise<void> => {
       topics: [
         {
           topic: "MESSAGES",
-          numPartitions: 4,
+          numPartitions: 1,
         },
       ],
     });
@@ -89,7 +89,7 @@ export const produceMessage = async (message: string): Promise<void> => {
   console.log("Producer connected");
 
   await producer.send({
-    messages: [{ key: `message-${Date.now()}`, value: message, partition: 1 }],
+    messages: [{ key: `message-${Date.now()}`, value: message }],
     topic: "MESSAGES",
   });
 
