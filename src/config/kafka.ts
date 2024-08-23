@@ -8,6 +8,9 @@ import {
 } from "../utils/chatFunctions";
 import { redisClient } from "../config/redis";
 import { prisma } from "../config/postgres";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const get_active_users = async (usernames: Array<string>) => {
   try {
@@ -50,7 +53,7 @@ const get_active_room_users = async (groupId: string) => {
 
 export const kafka = new Kafka({
   clientId: "my-app",
-  brokers: ["172.202.106.28:9092"],
+  brokers: [process.env.KAFKA_IP],
 });
 
 export const createTopic = async (): Promise<void> => {
