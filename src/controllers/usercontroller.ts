@@ -358,7 +358,7 @@ export const getGroupsByColleges: RequestHandler = async (
       where: { college: college_name },
     });
 
-    if (groups.length === 0) {
+    if (!groups) {
       return res.status(404).json({
         success: false,
         message: "Groups with this college names does not exists",
@@ -447,14 +447,18 @@ export const isUserintheGroup: RequestHandler = async (
 
     const user = await prisma.user.findFirst({ where: { username: username } });
 
-    const isUser = group_members.users.find(
-      (member: User) => member.id === user.id
-    );
+    let isUser = false;
 
-    if (!isUser) {
-      return res.status(200).json({ success: true, user: false });
-    } else {
+    for (const _user of group_members.users) {
+      if (_user.id === user.id) {
+        isUser = true;
+      }
+    }
+
+    if (isUser) {
       return res.status(200).json({ success: true, user: true });
+    } else {
+      return res.status(200).json({ success: true, user: false });
     }
   } catch (err) {
     return res
