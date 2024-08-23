@@ -194,7 +194,6 @@ export const startMessageConsumer = async (): Promise<void> => {
       heartbeat,
       pause,
     }): Promise<void> => {
-      console.log("hey i am consumer here....");
       const parsedMessage = await JSON.parse(message.value.toString());
       await saveMessageToDB(JSON.stringify(parsedMessage));
       console.log(
