@@ -28,7 +28,7 @@ const get_active_users = async (usernames: Array<string>) => {
     });
     return active_users_array;
   } catch (err) {
-    console.error("Error retrieving active users:", err);
+    console.log("Error retrieving active users:", err);
     return [];
   }
 };
@@ -42,12 +42,14 @@ const get_active_room_users = async (groupId: string) => {
       room_users = DeserializeGroupMap(room_users_cache);
     }
     let usernames: Array<string> = [];
-    room_users.get(groupId).forEach((value, key) => {
-      usernames.push(key);
-    });
+    if (room_users.get(groupId)) {
+      room_users.get(groupId).forEach((value, key) => {
+        usernames.push(key);
+      });
+    }
     return usernames;
   } catch (err) {
-    console.error("Error retrieving active room users:", err);
+    console.log("Error retrieving active room users:", err);
     return [];
   }
 };
@@ -106,7 +108,7 @@ export const produceMessage = async (message: string): Promise<void> => {
 
 const saveMessageToDB = async (message: string) => {
   try {
-    const parsedMessage = JSON.parse(message);
+    const parsedMessage = await JSON.parse(message);
 
     let active_room_users: Array<string>;
 
@@ -201,7 +203,7 @@ export const startMessageConsumer = async (): Promise<void> => {
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
-        const parsedMessage = JSON.parse(message.value.toString());
+        const parsedMessage = await JSON.parse(message.value.toString());
         await saveMessageToDB(JSON.stringify(parsedMessage));
         console.log(
           `Message from ${topic} partition ${partition} message is ${
