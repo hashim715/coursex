@@ -116,7 +116,7 @@ subClient.on("end", () => {
   try {
     await pubClient.connect();
     await subClient.connect();
-    console.log("Redis clients connected successfully");
+    console.log("Redis pub/sub clients connected successfully");
   } catch (err) {
     console.error("Error connecting Redis clients:", err);
   }

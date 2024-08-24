@@ -6,6 +6,6 @@ export const clearRedis: RequestHandler = async (
   res: Response,
   next: NextFunction
 ): Promise<Response> => {
-  await redisClient.flushdb();
+  await redisClient.flushDb();
   return res.status(200).json({ succuess: true, message: "Hello world" });
 };

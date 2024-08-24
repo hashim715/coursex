@@ -24,7 +24,7 @@
 import { createClient, RedisClientType } from "redis";
 
 // Define the Redis clients with a retry strategy
-export const redisClient: RedisClientType = createClient({
+const redisClient: RedisClientType = createClient({
   url: process.env.REDISCLIENTURI,
   socket: {
     reconnectStrategy: (retries: number) => {
@@ -58,3 +58,16 @@ redisClient.on("error", (err: Error) => {
 redisClient.on("end", () => {
   console.log("Redis PubClient connection closed");
 });
+
+// Connect the clients
+(async () => {
+  try {
+    await redisClient.connect();
+    console.log("Redis clients connected successfully");
+  } catch (err) {
+    console.error("Error connecting Redis clients:", err);
+  }
+})();
+
+// Don't forget to export the clients if needed
+export { redisClient };

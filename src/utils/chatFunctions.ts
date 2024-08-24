@@ -109,7 +109,7 @@ export const RemoveFromGroupRoomMap = async (
           }
         }
       }
-      await redisClient.setex(
+      await redisClient.setEx(
         `groups`,
         1800,
         JSON.stringify(serializeGroupMap(usersockets))
@@ -151,7 +151,7 @@ export const addSocketsToRoom = async (
           ])
         );
       }
-      await redisClient.setex(
+      await redisClient.setEx(
         `groups`,
         1800,
         JSON.stringify(serializeGroupMap(usersockets))
@@ -168,7 +168,7 @@ export const addSocketsToRoom = async (
           ]),
         ],
       ]);
-      await redisClient.setex(
+      await redisClient.setEx(
         `groups`,
         1800,
         JSON.stringify(serializeGroupMap(usersockets))
@@ -217,7 +217,7 @@ export const RemoveFromActiveUsersMap = async (
           }
         }
       }
-      await redisClient.setex(
+      await redisClient.setEx(
         `active_users`,
         1800,
         JSON.stringify(SerializeActiveUsersMap(activeusers))
@@ -244,7 +244,7 @@ export const addActiveUsers = async (
       } else {
         activeusers.set(username, new Set<string>([socket_id]));
       }
-      await redisClient.setex(
+      await redisClient.setEx(
         `active_users`,
         1800,
         JSON.stringify(SerializeActiveUsersMap(activeusers))
@@ -253,7 +253,7 @@ export const addActiveUsers = async (
       const activeusers: ActiveUsersMapType = new Map([
         [username, new Set<string>([socket_id])],
       ]);
-      await redisClient.setex(
+      await redisClient.setEx(
         `active_users`,
         1800,
         JSON.stringify(SerializeActiveUsersMap(activeusers))
@@ -337,7 +337,7 @@ export const RemoveFromReversedGrouMap = async (
           }
         }
       }
-      await redisClient.setex(
+      await redisClient.setEx(
         `groups`,
         1800,
         JSON.stringify(serializeGroupMap(usersockets))
@@ -360,13 +360,13 @@ export const addToSocketsListForTrackingUsers = async (
     } else {
       activesockets.add(socket_id);
     }
-    await redisClient.setex(
+    await redisClient.setEx(
       "active-sockets-list",
       1800,
       JSON.stringify(Array.from(activesockets))
     );
   } else {
-    await redisClient.setex(
+    await redisClient.setEx(
       "active-sockets-list",
       1800,
       JSON.stringify(Array.from(new Set([socket_id])))
@@ -420,7 +420,7 @@ export const removeFromSocketsList = async (socket_id: string) => {
       activesockets.delete(socket_id);
       console.log("Removed the user from sockets list....");
     }
-    await redisClient.setex(
+    await redisClient.setEx(
       "active-sockets-list",
       1800,
       JSON.stringify(Array.from(activesockets))
@@ -462,7 +462,7 @@ export const RemoveFromReversedActiveUsersMap = async (socket_id: string) => {
             if (activeusers.get(username).size === 0) {
               activeusers.delete(username);
             }
-            await redisClient.setex(
+            await redisClient.setEx(
               `active_users`,
               1800,
               JSON.stringify(SerializeActiveUsersMap(activeusers))

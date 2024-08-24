@@ -52,10 +52,10 @@ const start = async (): Promise<void> => {
       console.log(`Listening on port ${PORT}`);
     });
     await connectDB();
-    await redisClient.flushdb();
+    await redisClient.flushDb();
   } catch (err) {
     console.log(err);
-    await redisClient.flushdb();
+    await redisClient.flushDb();
   }
 };
 start();
