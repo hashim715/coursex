@@ -184,7 +184,7 @@ export const startMessageConsumer = async (): Promise<void> => {
   });
   await consumer.connect();
 
-  await consumer.subscribe({ topic: "MESSAGES", fromBeginning: true });
+  await consumer.subscribe({ topic: "MESSAGES", fromBeginning: false });
 
   await consumer.run({
     eachMessage: async ({
