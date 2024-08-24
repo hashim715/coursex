@@ -126,32 +126,38 @@ const saveMessageToDB = async (message: string) => {
       token: string | null;
     };
 
-    group_members.users.forEach((user: User) => {
-      if (!active_room_users.includes(user.username)) {
-        active_users.push(user.username);
-      }
-    });
+    if (group_members) {
+      group_members.users.forEach((user: User) => {
+        if (!active_room_users.includes(user.username)) {
+          active_users.push(user.username);
+        }
+      });
+    }
 
     active_users = await get_active_users(active_users);
 
     const status = new Map<string, string>();
 
-    active_room_users.forEach((username) => {
-      status.set(username, "read");
-    });
+    if (active_users) {
+      active_room_users.forEach((username) => {
+        status.set(username, "read");
+      });
+    }
 
     active_users.forEach((username) => {
       status.set(username, "delivered");
     });
 
-    group_members.users.forEach((user: User) => {
-      if (
-        !active_room_users.includes(user.username) &&
-        !active_users.includes(user.username)
-      ) {
-        status.set(user.username, "sent");
-      }
-    });
+    if (group_members) {
+      group_members.users.forEach((user: User) => {
+        if (
+          !active_room_users.includes(user.username) &&
+          !active_users.includes(user.username)
+        ) {
+          status.set(user.username, "sent");
+        }
+      });
+    }
 
     if (parsedMessage.type === "text") {
       const message_created = await Message.create({
