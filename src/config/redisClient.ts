@@ -32,7 +32,7 @@ const redisClient: RedisClientType = createClient({
         console.error("Max reconnect attempts for Redis PubClient exceeded");
         return new Error("Max reconnect attempts for Redis PubClient exceeded");
       }
-      console.log(`Redis PubClient reconnecting, attempt: ${retries}`);
+      console.log(`Redis redisClient reconnecting, attempt: ${retries}`);
       return Math.min(retries * 100, 3000); // Delay between retries
     },
   },
@@ -40,30 +40,30 @@ const redisClient: RedisClientType = createClient({
 
 // Connection event handlers for pubClient
 redisClient.on("connect", () => {
-  console.log("Redis PubClient connected");
+  console.log("Redis redisClient connected");
 });
 
 redisClient.on("ready", () => {
-  console.log("Redis PubClient is ready");
+  console.log("Redis redisClient is ready");
 });
 
 redisClient.on("reconnecting", () => {
-  console.log("Redis PubClient reconnecting...");
+  console.log("Redis redisClient reconnecting...");
 });
 
 redisClient.on("error", (err: Error) => {
-  console.error("Redis PubClient error:", err);
+  console.error("Redis redisClient error:", err);
 });
 
 redisClient.on("end", () => {
-  console.log("Redis PubClient connection closed");
+  console.log("Redis redisClient connection closed");
 });
 
 // Connect the clients
 (async () => {
   try {
     await redisClient.connect();
-    console.log("Redis clients connected successfully");
+    console.log("Redisclients connected successfully");
   } catch (err) {
     console.error("Error connecting Redis clients:", err);
   }
