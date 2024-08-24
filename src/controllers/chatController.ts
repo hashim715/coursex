@@ -87,6 +87,7 @@ export const chatController = async (
       userDisconnectingTriggered = false;
     });
     socket.on("message", async (msg): Promise<void> => {
+      console.log(msg);
       await pubClient.publish(
         "MESSAGES",
         JSON.stringify({
