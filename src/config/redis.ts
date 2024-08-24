@@ -14,3 +14,11 @@ pubClient.on("connect", () => {
 subClient.on("connect", () => {
   console.log("subClient connected");
 });
+
+pubClient.on("error", () => {
+  console.log("something went wrong with pubclient");
+});
+
+subClient.on("error", () => {
+  console.log("something went wrong with subclient");
+});
