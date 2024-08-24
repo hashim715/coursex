@@ -24,8 +24,16 @@ import { clearfiles } from "../utils/clearFiles";
 import path from "path";
 import fs, { renameSync } from "fs";
 import { s3 } from "../config/aws_s3";
+import cloudinary from "cloudinary";
 
 dotenv.config();
+
+// Cloudinary configuration
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 type Messages = {
   sender: string;
@@ -258,8 +266,12 @@ export const uploadMessageImages: RequestHandler = async (
         };
 
         try {
-          const s3Response = await s3.upload(params).promise();
-          imageUrls.push(s3Response.Location);
+          // const s3Response = await s3.upload(params).promise();
+          const result = await cloudinary.v2.uploader.upload(filename, {
+            folder: "w-app-user-message-images",
+          });
+          //imageUrls.push(s3Response.Location);
+          imageUrls.push(result.secure_url);
           fs.unlinkSync(filename);
         } catch (error) {
           clearfiles(req.files);
