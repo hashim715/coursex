@@ -25,7 +25,7 @@ import { createClient, RedisClientType } from "redis";
 
 // Define the Redis clients with a retry strategy
 const redisClient: RedisClientType = createClient({
-  url: process.env.REDISCLIENTURI,
+  url: `redis://${process.env.REDISCLIENTURI}`,
   socket: {
     reconnectStrategy: (retries: number) => {
       if (retries > 10) {
