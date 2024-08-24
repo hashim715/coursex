@@ -260,6 +260,7 @@ export const uploadMessageImages: RequestHandler = async (
         try {
           const s3Response = await s3.upload(params).promise();
           imageUrls.push(s3Response.Location);
+          fs.unlinkSync(filename);
         } catch (error) {
           clearfiles(req.files);
           return res.status(400).json({
@@ -268,12 +269,6 @@ export const uploadMessageImages: RequestHandler = async (
           });
         }
       }
-    }
-
-    if (filenames) {
-      filenames.forEach((filename) => {
-        fs.unlinkSync(filename);
-      });
     }
 
     return res.status(200).json({ success: true, message: imageUrls });

@@ -100,9 +100,9 @@ const saveMessageToDB = async (message: string) => {
   try {
     const parsedMessage = JSON.parse(message);
 
-    const active_room_users = await get_active_room_users(
-      parsedMessage.groupID
-    );
+    let active_room_users: Array<string>;
+
+    active_room_users = await get_active_room_users(parsedMessage.groupID);
 
     const group_members = await prisma.group.findUnique({
       where: { id: parseInt(parsedMessage.groupID) },
