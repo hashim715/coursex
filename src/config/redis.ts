@@ -3,21 +3,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const redisOptions = {
-  retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-  reconnectOnError: (error: Error) => {
-    if (error.message.includes("ECONNREFUSED")) {
-      return true;
-    }
-    return false;
-  },
-};
-
-export const pubClient: Redis = new Redis(process.env.REDIS_URI, redisOptions);
-export const subClient: Redis = new Redis(process.env.REDIS_URI, redisOptions);
+export const pubClient: Redis = new Redis(process.env.REDISCLIENTURI);
+export const subClient: Redis = new Redis(process.env.REDISCLIENTURI);
 
 pubClient.on("connect", () => {
   console.log("pubClient connected");
