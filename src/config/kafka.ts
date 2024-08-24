@@ -28,7 +28,8 @@ const get_active_users = async (usernames: Array<string>) => {
     });
     return active_users_array;
   } catch (err) {
-    return null;
+    console.error("Error retrieving active users:", err);
+    return [];
   }
 };
 
@@ -46,8 +47,8 @@ const get_active_room_users = async (groupId: string) => {
     });
     return usernames;
   } catch (err) {
-    console.log(err);
-    return null;
+    console.error("Error retrieving active room users:", err);
+    return [];
   }
 };
 
@@ -58,26 +59,29 @@ export const kafka = new Kafka({
 
 export const createTopic = async (): Promise<void> => {
   const admin = kafka.admin();
-  await admin.connect();
-  console.log("Admin connected");
+  try {
+    await admin.connect();
+    console.log("Admin connected");
 
-  // Check if the topic exists
-  const existingTopics = await admin.listTopics();
-  if (!existingTopics.includes("MESSAGES")) {
-    await admin.createTopics({
-      topics: [
-        {
-          topic: "MESSAGES",
-          numPartitions: 2,
-        },
-      ],
-    });
-    console.log("Topic created messages");
-  } else {
-    console.log("Topic already exists: MESSAGES");
+    const existingTopics = await admin.listTopics();
+    if (!existingTopics.includes("MESSAGES")) {
+      await admin.createTopics({
+        topics: [
+          {
+            topic: "MESSAGES",
+            numPartitions: 2,
+          },
+        ],
+      });
+      console.log("Topic created: MESSAGES");
+    } else {
+      console.log("Topic already exists: MESSAGES");
+    }
+  } catch (err) {
+    console.error("Error creating topic:", err);
+  } finally {
+    await admin.disconnect();
   }
-
-  await admin.disconnect();
 };
 
 export const produceMessage = async (message: string): Promise<void> => {
@@ -85,15 +89,19 @@ export const produceMessage = async (message: string): Promise<void> => {
     createPartitioner: Partitioners.LegacyPartitioner,
   });
 
-  await producer.connect();
-  console.log("Producer connected");
+  try {
+    await producer.connect();
+    console.log("Producer connected");
 
-  await producer.send({
-    messages: [{ key: `message-${Date.now()}`, value: message }],
-    topic: "MESSAGES",
-  });
-
-  await producer.disconnect();
+    await producer.send({
+      messages: [{ key: `message-${Date.now()}`, value: message }],
+      topic: "MESSAGES",
+    });
+  } catch (err) {
+    console.error("Error sending message:", err);
+  } finally {
+    await producer.disconnect();
+  }
 };
 
 const saveMessageToDB = async (message: string) => {
@@ -185,28 +193,24 @@ const saveMessageToDB = async (message: string) => {
 };
 
 export const startMessageConsumer = async (): Promise<void> => {
-  const consumer = kafka.consumer({
-    groupId: "0",
-  });
-  await consumer.connect();
+  const consumer = kafka.consumer({ groupId: "0" });
 
-  await consumer.subscribe({ topic: "MESSAGES", fromBeginning: false });
+  try {
+    await consumer.connect();
+    await consumer.subscribe({ topic: "MESSAGES", fromBeginning: false });
 
-  await consumer.run({
-    eachMessage: async ({
-      topic,
-      partition,
-      message,
-      heartbeat,
-      pause,
-    }): Promise<void> => {
-      const parsedMessage = await JSON.parse(message.value.toString());
-      await saveMessageToDB(JSON.stringify(parsedMessage));
-      console.log(
-        `Message from ${topic} partition ${partition} message is ${
-          parsedMessage.type === "text" ? parsedMessage.message : "Images"
-        }`
-      );
-    },
-  });
+    await consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        const parsedMessage = JSON.parse(message.value.toString());
+        await saveMessageToDB(JSON.stringify(parsedMessage));
+        console.log(
+          `Message from ${topic} partition ${partition} message is ${
+            parsedMessage.type === "text" ? parsedMessage.message : "Images"
+          }`
+        );
+      },
+    });
+  } catch (err) {
+    console.error("Error starting message consumer:", err);
+  }
 };
