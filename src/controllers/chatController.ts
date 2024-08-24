@@ -252,8 +252,8 @@ export const uploadMessageImages: RequestHandler = async (
         }
 
         const date = Date.now();
-        const filename = "uploads/userImages/" + file.originalname;
-        //renameSync(file.path, filename);
+        const filename = "uploads/userImages/" + date + file.originalname;
+        renameSync(file.path, filename);
         //filenames.push(filename);
 
         const fileContent = fs.readFileSync(filename);
