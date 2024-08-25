@@ -88,10 +88,17 @@ export const chatController = async (
       userDisconnectingTriggered = false;
     });
     socket.on("message", async (msg): Promise<void> => {
-      //const parsedMessage = JSON.parse(message);
-      const parsedMessage = msg;
+      const parsedMessage = {
+        message: msg.message,
+        groupID: msg.group_id,
+        sender: msg.sender,
+        id: socket.id,
+        timeStamp: msg.timeStamp,
+        type: msg.type,
+        images: msg.images,
+      };
       if (parsedMessage.type === "text") {
-        socket.to(parsedMessage.group_id).emit("message", {
+        socket.to(parsedMessage.groupID).emit("message", {
           message: parsedMessage.message,
           sender: parsedMessage.sender,
           id: socket.id,
@@ -99,7 +106,7 @@ export const chatController = async (
           type: parsedMessage.type,
         });
       } else {
-        socket.to(parsedMessage.group_id).emit("message", {
+        socket.to(parsedMessage.groupID).emit("message", {
           message: parsedMessage.message,
           sender: parsedMessage.sender,
           id: socket.id,
