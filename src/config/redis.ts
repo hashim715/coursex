@@ -3,39 +3,57 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export const pubClient: Redis = new Redis(process.env.REDISCLIENTURI);
-export const subClient: Redis = new Redis(process.env.REDISCLIENTURI);
+// export const pubClient: Redis = new Redis(process.env.REDISCLIENTURI);
+// export const subClient: Redis = new Redis(process.env.REDISCLIENTURI);
 
-pubClient.on("connect", () => {
-  console.log("pubClient connected");
+// pubClient.on("connect", () => {
+//   console.log("pubClient connected");
+// });
+
+// subClient.on("connect", () => {
+//   console.log("subClient connected");
+// });
+
+// pubClient.on("error", (err) => {
+//   console.error("Error in pubClient:", err);
+// });
+
+// subClient.on("error", (err) => {
+//   console.error("Error in subClient:", err);
+// });
+
+// pubClient.on("reconnecting", () => {
+//   console.log("pubClient reconnecting...");
+// });
+
+// subClient.on("reconnecting", () => {
+//   console.log("subClient reconnecting...");
+// });
+
+// pubClient.on("ready", () => {
+//   console.log("pubClient ready");
+// });
+
+// subClient.on("ready", () => {
+//   console.log("subClient ready");
+// });
+
+export const redispubsubClient: Redis = new Redis(process.env.REDISCLIENTURI);
+
+redispubsubClient.on("connect", () => {
+  console.log("redispubsubClient connected");
 });
 
-subClient.on("connect", () => {
-  console.log("subClient connected");
+redispubsubClient.on("error", (err) => {
+  console.error("Error in redispubsubClient:", err);
 });
 
-pubClient.on("error", (err) => {
-  console.error("Error in pubClient:", err);
+redispubsubClient.on("ready", () => {
+  console.log("redispubsubClient ready");
 });
 
-subClient.on("error", (err) => {
-  console.error("Error in subClient:", err);
-});
-
-pubClient.on("reconnecting", () => {
-  console.log("pubClient reconnecting...");
-});
-
-subClient.on("reconnecting", () => {
-  console.log("subClient reconnecting...");
-});
-
-pubClient.on("ready", () => {
-  console.log("pubClient ready");
-});
-
-subClient.on("ready", () => {
-  console.log("subClient ready");
+redispubsubClient.on("reconnecting", () => {
+  console.log("redispubsubClient reconnecting...");
 });
 
 // import { createClient, RedisClientType } from "redis";

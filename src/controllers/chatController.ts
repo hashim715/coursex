@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 import { Server, Socket } from "socket.io";
 import http from "http";
 import { Application } from "express";
-import { createAdapter } from "@socket.io/redis-adapter";
-import { pubClient, subClient } from "../config/redis";
+import { createAdapter } from "@socket.io/redis-streams-adapter";
+// import { pubClient, subClient } from "../config/redis";
+import { redispubsubClient } from "../config/redis";
 import { produceMessage } from "../config/kafka";
 import {
   addSocketsToRoom,
@@ -44,7 +45,7 @@ type Messages = {
   status: Map<string, string>;
 };
 
-subClient.subscribe("MESSAGES", (err, count) => {
+redispubsubClient.subscribe("MESSAGES", (err, count) => {
   if (err) {
     console.error("Failed to subscribe: ", err);
     return;
@@ -57,7 +58,7 @@ export const chatController = async (
 ): Promise<void> => {
   const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    adapter: createAdapter(pubClient, subClient),
+    adapter: createAdapter(redispubsubClient),
   });
 
   io.on("connection", async (socket: Socket): Promise<void> => {
@@ -88,7 +89,7 @@ export const chatController = async (
     });
     socket.on("message", async (msg): Promise<void> => {
       console.log(msg);
-      await pubClient.publish(
+      await redispubsubClient.publish(
         "MESSAGES",
         JSON.stringify({
           message: msg.message,
@@ -115,7 +116,7 @@ export const chatController = async (
     });
   });
 
-  subClient.on("message", async (channel, message) => {
+  redispubsubClient.on("message", async (channel, message) => {
     if (channel === "MESSAGES") {
       const parsedMessage = JSON.parse(message);
       if (parsedMessage.type === "text") {
