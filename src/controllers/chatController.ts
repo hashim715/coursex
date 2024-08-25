@@ -45,12 +45,12 @@ type Messages = {
   status: Map<string, string>;
 };
 
-redispubsubClient.subscribe("MESSAGES", (err, count) => {
-  if (err) {
-    console.error("Failed to subscribe: ", err);
-    return;
-  }
-});
+// redispubsubClient.subscribe("MESSAGES", (err, count) => {
+//   if (err) {
+//     console.error("Failed to subscribe: ", err);
+//     return;
+//   }
+// });
 
 export const chatController = async (
   app: Application,
@@ -88,19 +88,39 @@ export const chatController = async (
       userDisconnectingTriggered = false;
     });
     socket.on("message", async (msg): Promise<void> => {
-      console.log(msg);
-      await redispubsubClient.publish(
-        "MESSAGES",
-        JSON.stringify({
-          message: msg.message,
-          groupID: msg.group_id,
-          sender: msg.sender,
-          id: socket.id,
-          timeStamp: msg.timeStamp,
-          type: msg.type,
-          images: msg.images,
-        })
-      );
+      //const parsedMessage = JSON.parse(message);
+      const parsedMessage = msg;
+      if (parsedMessage.type === "text") {
+        socket.to(parsedMessage.groupID).emit("message", {
+          message: parsedMessage.message,
+          sender: parsedMessage.sender,
+          id: parsedMessage.id,
+          timeStamp: parsedMessage.timeStamp,
+          type: parsedMessage.type,
+        });
+      } else {
+        socket.to(parsedMessage.groupID).emit("message", {
+          message: parsedMessage.message,
+          sender: parsedMessage.sender,
+          id: parsedMessage.id,
+          timeStamp: parsedMessage.timeStamp,
+          type: parsedMessage.type,
+          images: parsedMessage.images,
+        });
+      }
+      await produceMessage(JSON.stringify(parsedMessage));
+      // await redispubsubClient.publish(
+      //   "MESSAGES",
+      //   JSON.stringify({
+      //     message: msg.message,
+      //     groupID: msg.group_id,
+      //     sender: msg.sender,
+      //     id: socket.id,
+      //     timeStamp: msg.timeStamp,
+      //     type: msg.type,
+      //     images: msg.images,
+      //   })
+      // );
     });
     socket.on("disconnecting", async () => {
       console.log("disconnecting.....");
@@ -116,30 +136,11 @@ export const chatController = async (
     });
   });
 
-  redispubsubClient.on("message", async (channel, message) => {
-    if (channel === "MESSAGES") {
-      const parsedMessage = JSON.parse(message);
-      if (parsedMessage.type === "text") {
-        io.to(parsedMessage.groupID).emit("message", {
-          message: parsedMessage.message,
-          sender: parsedMessage.sender,
-          id: parsedMessage.id,
-          timeStamp: parsedMessage.timeStamp,
-          type: parsedMessage.type,
-        });
-      } else {
-        io.to(parsedMessage.groupID).emit("message", {
-          message: parsedMessage.message,
-          sender: parsedMessage.sender,
-          id: parsedMessage.id,
-          timeStamp: parsedMessage.timeStamp,
-          type: parsedMessage.type,
-          images: parsedMessage.images,
-        });
-      }
-      await produceMessage(JSON.stringify(parsedMessage));
-    }
-  });
+  // redispubsubClient.on("message", async (channel, message) => {
+  //   if (channel === "MESSAGES") {
+
+  //   }
+  // });
 };
 
 export const getMessagesByGroup: RequestHandler = async (
