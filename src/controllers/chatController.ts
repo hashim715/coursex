@@ -91,18 +91,18 @@ export const chatController = async (
       //const parsedMessage = JSON.parse(message);
       const parsedMessage = msg;
       if (parsedMessage.type === "text") {
-        socket.to(parsedMessage.groupID).emit("message", {
+        socket.to(parsedMessage.group_id).emit("message", {
           message: parsedMessage.message,
           sender: parsedMessage.sender,
-          id: parsedMessage.id,
+          id: socket.id,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
         });
       } else {
-        socket.to(parsedMessage.groupID).emit("message", {
+        socket.to(parsedMessage.group_id).emit("message", {
           message: parsedMessage.message,
           sender: parsedMessage.sender,
-          id: parsedMessage.id,
+          id: socket.id,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
           images: parsedMessage.images,
