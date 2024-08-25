@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import dotenv from "dotenv";
+import { createClient, RedisClientType } from "redis";
 
 dotenv.config();
 
@@ -38,23 +39,23 @@ dotenv.config();
 //   console.log("subClient ready");
 // });
 
-export const redispubsubClient: Redis = new Redis(process.env.REDISCLIENTURI);
+// export const redispubsubClient: Redis = new Redis(process.env.REDISCLIENTURI);
 
-redispubsubClient.on("connect", () => {
-  console.log("redispubsubClient connected");
-});
+// redispubsubClient.on("connect", () => {
+//   console.log("redispubsubClient connected");
+// });
 
-redispubsubClient.on("error", (err) => {
-  console.error("Error in redispubsubClient:", err);
-});
+// redispubsubClient.on("error", (err) => {
+//   console.error("Error in redispubsubClient:", err);
+// });
 
-redispubsubClient.on("ready", () => {
-  console.log("redispubsubClient ready");
-});
+// redispubsubClient.on("ready", () => {
+//   console.log("redispubsubClient ready");
+// });
 
-redispubsubClient.on("reconnecting", () => {
-  console.log("redispubsubClient reconnecting...");
-});
+// redispubsubClient.on("reconnecting", () => {
+//   console.log("redispubsubClient reconnecting...");
+// });
 
 // import { createClient, RedisClientType } from "redis";
 
@@ -142,3 +143,38 @@ redispubsubClient.on("reconnecting", () => {
 
 // // Don't forget to export the clients if needed
 // export { pubClient, subClient };
+
+const redispubsubClient: RedisClientType = createClient({
+  url: `redis://${process.env.REDISCLIENTURI}`,
+});
+
+redispubsubClient.on("connect", () => {
+  console.log("redispussubClient connected");
+});
+
+redispubsubClient.on("ready", () => {
+  console.log("redispubsubClient is ready");
+});
+
+redispubsubClient.on("reconnecting", () => {
+  console.log("redispubsubClient reconnecting...");
+});
+
+redispubsubClient.on("error", (err: Error) => {
+  console.error("redispubsubClient error:", err);
+});
+
+redispubsubClient.on("end", () => {
+  console.log("redispubsubClient connection closed");
+});
+
+(async () => {
+  try {
+    await redispubsubClient.connect();
+    console.log("Redispubsubclients connected successfully");
+  } catch (err) {
+    console.error("Error connecting Redis clients:", err);
+  }
+})();
+
+export { redispubsubClient };

@@ -23,22 +23,20 @@
 
 import { createClient, RedisClientType } from "redis";
 
-// Define the Redis clients with a retry strategy
 const redisClient: RedisClientType = createClient({
   url: `redis://${process.env.REDISCLIENTURI}`,
-  socket: {
-    reconnectStrategy: (retries: number) => {
-      if (retries > 10) {
-        console.error("Max reconnect attempts for Redis PubClient exceeded");
-        return new Error("Max reconnect attempts for Redis PubClient exceeded");
-      }
-      console.log(`Redis redisClient reconnecting, attempt: ${retries}`);
-      return Math.min(retries * 100, 3000); // Delay between retries
-    },
-  },
+  // socket: {
+  //   reconnectStrategy: (retries: number) => {
+  //     if (retries > 10) {
+  //       console.error("Max reconnect attempts for Redis PubClient exceeded");
+  //       return new Error("Max reconnect attempts for Redis PubClient exceeded");
+  //     }
+  //     console.log(`Redis redisClient reconnecting, attempt: ${retries}`);
+  //     return Math.min(retries * 100, 3000); // Delay between retries
+  //   },
+  // },
 });
 
-// Connection event handlers for pubClient
 redisClient.on("connect", () => {
   console.log("Redis redisClient connected");
 });
@@ -59,7 +57,6 @@ redisClient.on("end", () => {
   console.log("Redis redisClient connection closed");
 });
 
-// Connect the clients
 (async () => {
   try {
     await redisClient.connect();
@@ -69,5 +66,4 @@ redisClient.on("end", () => {
   }
 })();
 
-// Don't forget to export the clients if needed
 export { redisClient };
