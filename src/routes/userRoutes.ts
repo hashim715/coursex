@@ -15,6 +15,10 @@ import {
   getGroupJoinUrl,
   generateQrCode,
   getUserInfoById,
+  leavethegroup,
+  createEvent,
+  getEvents,
+  getEventDetails,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -25,6 +29,10 @@ const uploadProfileImage = multer({
 
 const uploadGroupImage = multer({
   dest: "uploads/groups",
+});
+
+const uploadEventImage = multer({
+  dest: "uploads/events",
 });
 
 export const userRouter: Router = express.Router();
@@ -72,3 +80,17 @@ userRouter.route("/getGroupJoinUrl/:group_id").get(getGroupJoinUrl);
 userRouter.route("/generateQrCode/:group_id").get(generateQrCode);
 
 userRouter.route("/getUerInfoById/:id").get(protect, getUserInfoById);
+
+userRouter.route("/leaveGroup/:group_id").post(protect, leavethegroup);
+
+userRouter
+  .route("/createEvent")
+  .post(
+    protect,
+    uploadEventImage.fields([{ name: "image", maxCount: 1 }]),
+    createEvent
+  );
+
+userRouter.route("/getEvents").get(protect, getEvents);
+
+userRouter.route("/getEventDetails/:event_id").get(protect, getEventDetails);

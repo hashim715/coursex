@@ -1,10 +1,8 @@
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken";
 import { Server, Socket } from "socket.io";
 import http from "http";
 import { Application } from "express";
 import { createAdapter } from "@socket.io/redis-streams-adapter";
-// import { pubClient, subClient } from "../config/redis";
 import { redispubsubClient } from "../config/redis";
 import { produceMessage } from "../config/kafka";
 import {
@@ -21,20 +19,8 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { Message } from "../models/MessageSchema";
 import { getTokenFunc } from "./usercontroller";
 import jwt_decode from "jwt-decode";
-import { clearfiles } from "../utils/clearFiles";
-import path from "path";
-import fs, { renameSync } from "fs";
-import { s3 } from "../config/aws_s3";
-import cloudinary from "cloudinary";
 
 dotenv.config();
-
-// Cloudinary configuration
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 type Messages = {
   sender: string;
@@ -44,13 +30,6 @@ type Messages = {
   timeStamp: string;
   status: Map<string, string>;
 };
-
-// redispubsubClient.subscribe("MESSAGES", (err, count) => {
-//   if (err) {
-//     console.error("Failed to subscribe: ", err);
-//     return;
-//   }
-// });
 
 export const chatController = async (
   app: Application,
@@ -116,18 +95,6 @@ export const chatController = async (
         });
       }
       await produceMessage(JSON.stringify(parsedMessage));
-      // await redispubsubClient.publish(
-      //   "MESSAGES",
-      //   JSON.stringify({
-      //     message: msg.message,
-      //     groupID: msg.group_id,
-      //     sender: msg.sender,
-      //     id: socket.id,
-      //     timeStamp: msg.timeStamp,
-      //     type: msg.type,
-      //     images: msg.images,
-      //   })
-      // );
     });
     socket.on("disconnecting", async () => {
       console.log("disconnecting.....");
@@ -142,12 +109,6 @@ export const chatController = async (
       }
     });
   });
-
-  // redispubsubClient.on("message", async (channel, message) => {
-  //   if (channel === "MESSAGES") {
-
-  //   }
-  // });
 };
 
 export const getMessagesByGroup: RequestHandler = async (
@@ -218,85 +179,6 @@ export const updateDeliverStatusOnConnection: RequestHandler = async (
       .json({ success: true, message: "Messages Updated successfully" });
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
-  }
-};
-
-export const uploadMessageImages: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<Response> => {
-  try {
-    const files_ = req.files as { [fieldname: string]: Express.Multer.File[] };
-    const files: Express.Multer.File[] = files_["images"];
-
-    const fileTypes = /jpeg|jpg|png|gif/;
-    let filenames: Array<string> = [];
-    let imageUrls: Array<string> = [];
-
-    if (Array.isArray(files)) {
-      if (files.length > 8) {
-        clearfiles(files);
-        return res.status(400).json({
-          success: false,
-          message: "Please upload upto 8 images only",
-        });
-      }
-
-      for (const file of files) {
-        const extname = fileTypes.test(
-          path.extname(file.originalname).toLowerCase()
-        );
-        const mimetype = fileTypes.test(file.mimetype);
-
-        if (!extname || !mimetype) {
-          clearfiles(req.files);
-          return res.status(400).json({
-            success: false,
-            message:
-              "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
-          });
-        }
-
-        const date = Date.now();
-        const filename = "uploads/userImages/" + date + file.originalname;
-        renameSync(file.path, filename);
-        //filenames.push(filename);
-
-        const fileContent = fs.readFileSync(filename);
-
-        const params = {
-          Bucket: "w-groupchat-images",
-          Key: `${Date.now()}_${file.originalname}`,
-          Body: fileContent,
-          ContentType: "image/jpeg",
-        };
-
-        try {
-          // const s3Response = await s3.upload(params).promise();
-          const result = await cloudinary.v2.uploader.upload(filename, {
-            folder: "w-app-user-message-images",
-          });
-          //imageUrls.push(s3Response.Location);
-          imageUrls.push(result.secure_url);
-          fs.unlinkSync(filename);
-        } catch (error) {
-          clearfiles(req.files);
-          return res.status(400).json({
-            success: false,
-            message: "Error while uploading images try again",
-          });
-        }
-      }
-    }
-
-    return res.status(200).json({ success: true, message: imageUrls });
-  } catch (err) {
-    console.log(err);
-    clearfiles(req.files);
     return res
       .status(500)
       .json({ success: false, message: "Server error occurred" });

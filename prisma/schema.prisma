@@ -19,7 +19,6 @@ model User {
   name String
   email String @unique()
   password String
-  year String
   college String?
   image String? @default("https://cdn1.iconfinder.com/data/icons/user-pics/512/user_add-512.png")
   courses String[] @default(["","","","",""]) 
@@ -27,6 +26,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   token String?
+  events Event[]
 }
 
 model Group {
@@ -39,4 +39,15 @@ model Group {
   description String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id Int @id @default(autoincrement())
+  adminId Int
+  user User @relation(fields: [adminId],references: [id],onDelete: Cascade)
+  name String
+  location String
+  description String
+  time String
+  image String? @default("https://cdn-icons-png.flaticon.com/512/1911/1911087.png")
 }

@@ -96,7 +96,7 @@ export const produceMessage = async (message: string): Promise<void> => {
     console.log("Producer connected");
 
     await producer.send({
-      messages: [{ key: `message-${Date.now()}`, value: message }],
+      messages: [{ key: `message-local`, value: message, partition: 0 }],
       topic: "MESSAGES",
     });
   } catch (err) {

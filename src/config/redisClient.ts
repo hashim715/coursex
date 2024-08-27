@@ -1,68 +1,35 @@
-// import { Redis } from "ioredis";
-// import dotenv from "dotenv";
-
-// dotenv.config();
-
-// export const redisClient: Redis = new Redis(process.env.REDISCLIENTURI);
-
-// redisClient.on("connect", () => {
-//   console.log("Redis Client connected");
-// });
-
-// redisClient.on("error", () => {
-//   console.log("something went wrong with redis");
-// });
-
-// redisClient.on("reconnecting", () => {
-//   console.log("subClient reconnecting...");
-// });
-
-// redisClient.on("ready", () => {
-//   console.log("pubClient ready");
-// });
-
 import { createClient, RedisClientType } from "redis";
 
 const redisClient: RedisClientType = createClient({
   url: `redis://${process.env.REDISCLIENTURI}`,
-  // socket: {
-  //   reconnectStrategy: (retries: number) => {
-  //     if (retries > 10) {
-  //       console.error("Max reconnect attempts for Redis PubClient exceeded");
-  //       return new Error("Max reconnect attempts for Redis PubClient exceeded");
-  //     }
-  //     console.log(`Redis redisClient reconnecting, attempt: ${retries}`);
-  //     return Math.min(retries * 100, 3000); // Delay between retries
-  //   },
-  // },
 });
 
 redisClient.on("connect", () => {
-  console.log("Redis redisClient connected");
+  console.log("redisClient connected");
 });
 
 redisClient.on("ready", () => {
-  console.log("Redis redisClient is ready");
+  console.log("redisClient is ready");
 });
 
 redisClient.on("reconnecting", () => {
-  console.log("Redis redisClient reconnecting...");
+  console.log("redisClient reconnecting...");
 });
 
 redisClient.on("error", (err: Error) => {
-  console.error("Redis redisClient error:", err);
+  console.error("redisClient error:", err);
 });
 
 redisClient.on("end", () => {
-  console.log("Redis redisClient connection closed");
+  console.log("redisClient connection closed");
 });
 
 (async () => {
   try {
     await redisClient.connect();
-    console.log("Redisclients connected successfully");
+    console.log("redisclients connected successfully");
   } catch (err) {
-    console.error("Error connecting Redis clients:", err);
+    console.error("Error connecting redisClients:", err);
   }
 })();
 

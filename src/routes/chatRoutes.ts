@@ -1,7 +1,6 @@
 import {
   getMessagesByGroup,
   updateDeliverStatusOnConnection,
-  uploadMessageImages,
 } from "../controllers/chatController";
 import express from "express";
 import { Router } from "express";
@@ -21,11 +20,3 @@ chatRouter
 chatRouter
   .route("/updatedeliverstatus")
   .get(protect, updateDeliverStatusOnConnection);
-
-chatRouter
-  .route("/uploadImages")
-  .post(
-    protect,
-    uploadUserImages.fields([{ name: "images", maxCount: 8 }]),
-    uploadMessageImages
-  );

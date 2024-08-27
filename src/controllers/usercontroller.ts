@@ -48,7 +48,6 @@ export const register: RequestHandler = async (
       name,
       username,
       email,
-      year,
     }: {
       name: string;
       username: string;
@@ -58,7 +57,7 @@ export const register: RequestHandler = async (
 
     let { password }: { password: string } = req.body;
 
-    if (!name || !username || !email || !password || !year) {
+    if (!name || !username || !email || !password) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -92,7 +91,6 @@ export const register: RequestHandler = async (
         username: username,
         email: email,
         password: password,
-        year: year,
         name: name,
       },
     });
@@ -532,7 +530,6 @@ export const editProfileInfo: RequestHandler = async (
     let imageUrl: string | null;
 
     if (Array.isArray(req.files)) {
-      console.log("i am called");
       const file = req.files[0];
       const extname = fileTypes.test(
         path.extname(file.originalname).toLowerCase()
@@ -731,7 +728,198 @@ export const getUserInfoById = async (
   }
 };
 
-export const leavethegroup = async () => {};
+export const leavethegroup = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { group_id } = req.params;
+
+    const group = await prisma.group.findUnique({
+      where: { id: parseInt(group_id) },
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Group with given id does not exists",
+      });
+    }
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    await prisma.group.update({
+      where: { id: group.id },
+      data: { users: { disconnect: { id: user.id } } },
+    });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { groups: { disconnect: { id: group.id } } },
+    });
+
+    return res
+      .status(200)
+      .json({ success: false, message: "You left the group" });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};
+
+export const createEvent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { name, location, description, time } = req.body;
+
+    if (!name || !location || !description || !time) {
+      return res.status(400).json({
+        success: false,
+        message: "Please fill out the form correctly",
+      });
+    }
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    const files_ = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const files: Express.Multer.File[] = files_["image"];
+
+    const fileTypes = /jpeg|jpg|png|gif/;
+
+    let imageUrl: string;
+
+    if (Array.isArray(files)) {
+      for (const file of files) {
+        const extname = fileTypes.test(
+          path.extname(file.originalname).toLowerCase()
+        );
+        const mimetype = fileTypes.test(file.mimetype);
+
+        if (!extname || !mimetype) {
+          clearfiles(req.files);
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
+          });
+        }
+
+        const date = Date.now();
+        const filename = "uploads/events/" + date + file.originalname;
+        renameSync(file.path, filename);
+
+        const fileContent = fs.readFileSync(filename);
+
+        const params = {
+          Bucket: "w-groupchat-images",
+          Key: `${Date.now()}_${file.originalname}`,
+          Body: fileContent,
+          ContentType: "image/jpeg",
+        };
+
+        try {
+          const s3Response = await s3.upload(params).promise();
+          imageUrl = s3Response.Location;
+          fs.unlinkSync(filename);
+        } catch (error) {
+          clearfiles(req.files);
+          return res.status(400).json({
+            success: false,
+            message: "Error while uploading images try again",
+          });
+        }
+      }
+    }
+
+    if (imageUrl) {
+      await prisma.event.create({
+        data: {
+          name: name,
+          adminId: user.id,
+          location: location,
+          description: description,
+          time: time,
+          image: imageUrl,
+        },
+      });
+    } else {
+      await prisma.event.create({
+        data: {
+          name: name,
+          adminId: user.id,
+          location: location,
+          description: description,
+          time: time,
+        },
+      });
+    }
+    return res
+      .status(200)
+      .json({ success: true, message: "Your event creatd successfully." });
+  } catch (err) {
+    clearfiles(req.files);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};
+
+export const getEvents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const events = await prisma.event.findMany({});
+
+    return res.status(200).json({ success: true, message: events });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};
+
+export const getEventDetails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { event_id } = req.params;
+
+    const event = await prisma.event.findUnique({
+      where: { id: parseInt(event_id) },
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event with given id does not exists",
+      });
+    }
+
+    return res.status(200).json({ success: true, message: event });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Something went wrong" });
+  }
+};
 
 export const testingController: RequestHandler = async (
   req: Request,
