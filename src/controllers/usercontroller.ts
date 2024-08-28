@@ -536,6 +536,13 @@ export const editProfileInfo: RequestHandler = async (
       courses,
     }: { name: string; college: string; courses: string } = req.body;
 
+    if (!name || !college || !courses) {
+      clearfiles(req.files);
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
     if (!name.trim() || !college.trim() || !courses.trim()) {
       clearfiles(req.files);
       return res
