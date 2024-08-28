@@ -78,12 +78,10 @@ export const register: RequestHandler = async (
     }
 
     if (!validateEmail(email)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Email address that you provided is not valid",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Email address that you provided is not valid",
+      });
     }
 
     let user = await prisma.user.findFirst({
@@ -535,17 +533,17 @@ export const editProfileInfo: RequestHandler = async (
     let {
       name,
       college,
-      courses_,
-    }: { name: string; college: string; courses_: string } = req.body;
+      courses,
+    }: { name: string; college: string; courses: string } = req.body;
 
-    if (!name.trim() || !college.trim() || !courses_.trim()) {
+    if (!name.trim() || !college.trim() || !courses.trim()) {
       clearfiles(req.files);
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
     }
 
-    const courses: Array<string> = JSON.parse(courses_);
+    const courses_: Array<string> = JSON.parse(courses);
 
     const token = getTokenFunc(req);
 
@@ -632,9 +630,9 @@ export const editProfileInfo: RequestHandler = async (
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          name: name.length > 0 ? name : user.name,
-          courses: courses,
-          college: college.length > 0 ? college : user.college,
+          name: name,
+          courses: courses_,
+          college: college,
           image: imageUrl,
         },
       });
@@ -642,9 +640,9 @@ export const editProfileInfo: RequestHandler = async (
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          name: name.length > 0 ? name : user.name,
-          courses: courses,
-          college: college.length > 0 ? college : user.college,
+          name: name,
+          courses: courses_,
+          college: college,
         },
       });
     }
