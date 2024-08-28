@@ -5,13 +5,8 @@ import {
 import express from "express";
 import { Router } from "express";
 import { protect } from "../middleware/auth";
-import multer from "multer";
 
 export const chatRouter: Router = express.Router();
-
-const uploadUserImages = multer({
-  dest: "uploads/userImages",
-});
 
 chatRouter
   .route("/getMessagesByGroup/:group_id")

@@ -2,6 +2,7 @@ import { prisma } from "../config/postgres";
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import { sendToken } from "../utils/sendToken";
+import { validateEmail } from "../utils/checkvalidemail";
 import { matchPassword } from "../utils/matchPassword";
 import jwt_decode from "jwt-decode";
 import { clearfiles } from "../utils/clearFiles";
@@ -52,15 +53,37 @@ export const register: RequestHandler = async (
       name: string;
       username: string;
       email: string;
-      year: string;
     } = req.body;
 
     let { password }: { password: string } = req.body;
 
-    if (!name || !username || !email || !password) {
+    if (!name.trim() || !username.trim() || !email.trim() || !password.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    if (username.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Username should be of 6 characters at least",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password should be of 8 characters at least",
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Email address that you provided is not valid",
+        });
     }
 
     let user = await prisma.user.findFirst({
@@ -111,7 +134,7 @@ export const login: RequestHandler = async (
 ): Promise<Response> => {
   try {
     const { email, password }: { email: string; password: string } = req.body;
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -145,7 +168,8 @@ export const createGroup: RequestHandler = async (
 ): Promise<Response> => {
   try {
     const { name, college, description } = req.body;
-    if (!name || !college || !description) {
+
+    if (!name.trim() || !college.trim() || !description.trim()) {
       clearfiles(req.files);
       return res
         .status(400)
@@ -508,9 +532,20 @@ export const editProfileInfo: RequestHandler = async (
   next: NextFunction
 ): Promise<Response> => {
   try {
-    let { name, college, courses } = req.body;
+    let {
+      name,
+      college,
+      courses_,
+    }: { name: string; college: string; courses_: string } = req.body;
 
-    courses = JSON.parse(courses);
+    if (!name.trim() || !college.trim() || !courses_.trim()) {
+      clearfiles(req.files);
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    const courses: Array<string> = JSON.parse(courses_);
 
     const token = getTokenFunc(req);
 
@@ -779,9 +814,21 @@ export const createEvent = async (
   next: NextFunction
 ) => {
   try {
-    const { name, location, description, time } = req.body;
+    const {
+      name,
+      location,
+      description,
+      time,
+    }: { name: string; location: string; description: string; time: string } =
+      req.body;
 
-    if (!name || !location || !description || !time) {
+    if (
+      !name.trim() ||
+      !location.trim() ||
+      !description.trim() ||
+      !time.trim()
+    ) {
+      clearfiles(req.files);
       return res.status(400).json({
         success: false,
         message: "Please fill out the form correctly",
