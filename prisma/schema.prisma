@@ -48,6 +48,7 @@ model Event {
   name String
   location String
   description String
-  time String
+  startTime String
+  endTime String
   image String? @default("https://cdn-icons-png.flaticon.com/512/1911/1911087.png")
 }

@@ -823,15 +823,22 @@ export const createEvent = async (
       name,
       location,
       description,
-      time,
-    }: { name: string; location: string; description: string; time: string } =
-      req.body;
+      startTime,
+      endTime,
+    }: {
+      name: string;
+      location: string;
+      description: string;
+      startTime: string;
+      endTime: string;
+    } = req.body;
 
     if (
       !name.trim() ||
       !location.trim() ||
       !description.trim() ||
-      !time.trim()
+      !startTime.trim() ||
+      !endTime.trim()
     ) {
       clearfiles(req.files);
       return res.status(400).json({
@@ -903,7 +910,8 @@ export const createEvent = async (
           adminId: user.id,
           location: location,
           description: description,
-          time: time,
+          startTime: startTime,
+          endTime: endTime,
           image: imageUrl,
         },
       });
@@ -914,7 +922,8 @@ export const createEvent = async (
           adminId: user.id,
           location: location,
           description: description,
-          time: time,
+          startTime: startTime,
+          endTime: endTime,
         },
       });
     }
