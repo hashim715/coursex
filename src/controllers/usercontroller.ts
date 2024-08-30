@@ -393,6 +393,22 @@ export const getGroupsByColleges: RequestHandler = async (
   }
 };
 
+export const getGroups = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const groups = await prisma.group.findMany({});
+
+    return res.status(200).json({ success: true, message: groups });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error occurred" });
+  }
+};
+
 export const joinGroups: RequestHandler = async (
   req: Request,
   res: Response,

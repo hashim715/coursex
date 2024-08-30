@@ -19,6 +19,7 @@ import {
   createEvent,
   getEvents,
   getEventDetails,
+  getGroups,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -94,3 +95,5 @@ userRouter
 userRouter.route("/getEvents").get(protect, getEvents);
 
 userRouter.route("/getEventDetails/:event_id").get(protect, getEventDetails);
+
+userRouter.route("/getGroups").get(protect, getGroups);
