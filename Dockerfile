@@ -10,9 +10,7 @@ RUN npm install nodemon
 
 COPY . .
 
-RUN npm uninstall long
-
-RUN npm run build
+RUN rm -rf node_modules/long
 
 RUN npx prisma generate 
 
