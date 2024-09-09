@@ -12,6 +12,8 @@ COPY . .
 
 RUN rm -rf node_modules/long
 
+RUN npm run build
+
 RUN npx prisma generate 
 
 # RUN npx prisma migrate dev --name init
