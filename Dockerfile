@@ -6,7 +6,7 @@ COPY package*.json ./
 
 RUN npm install
 
-RUN npm install long@latest
+RUN npm uninstall long
 
 RUN npm install nodemon
 
