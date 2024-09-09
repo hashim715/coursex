@@ -4,11 +4,13 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install --legacy-peer-deps
+RUN npm install
 
 RUN npm install nodemon
 
 COPY . .
+
+RUN npm uninstall long
 
 RUN npm run build
 
