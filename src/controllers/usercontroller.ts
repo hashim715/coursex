@@ -12,6 +12,8 @@ import fs from "fs";
 import { s3 } from "../config/aws_s3";
 import { deleteImageByUrl } from "../utils/deleteimagefroms3";
 import QRCode from "qrcode";
+// import { sendemail } from "../utils/sendEmail";
+import { generateVerificationCode } from "../utils/getVerificationCode";
 
 type User = {
   id: number;
@@ -26,6 +28,8 @@ type User = {
   createdAt: Date;
   updatedAt: Date;
   token: string | null;
+  verification_code: string;
+  verification_token_expiry: string;
 };
 
 export const getTokenFunc = (req: Request) => {
@@ -107,21 +111,32 @@ export const register: RequestHandler = async (
     const salt: string = await bcrypt.genSalt(10);
     password = await bcrypt.hash(password, salt);
 
+    const verification_token = generateVerificationCode();
+
+    const currentDate = new Date();
+    const next24Hours = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+
     user = await prisma.user.create({
       data: {
         username: username,
         email: email,
         password: password,
         name: name,
+        verification_code: verification_token,
+        verification_token_expiry: next24Hours.toISOString(),
       },
     });
+
+    // send email
 
     await sendToken(username, 201, res);
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -153,9 +168,11 @@ export const login: RequestHandler = async (
     await sendToken(user.username, 200, res);
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -296,9 +313,11 @@ export const createGroup: RequestHandler = async (
   } catch (err) {
     console.log(err);
     clearfiles(req.files);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -327,9 +346,11 @@ export const getGroupsByUser: RequestHandler = async (
 
     return res.status(200).json({ success: true, message: groups.groups });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -360,9 +381,11 @@ export const getGroupDetails: RequestHandler = async (
       .status(200)
       .json({ success: true, group: group, members: group_members });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -387,9 +410,11 @@ export const getGroupsByColleges: RequestHandler = async (
 
     return res.status(200).json({ success: true, groups: groups });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -403,9 +428,11 @@ export const getGroups = async (
 
     return res.status(200).json({ success: true, message: groups });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -448,9 +475,11 @@ export const joinGroups: RequestHandler = async (
       .status(200)
       .json({ success: true, message: "User joined successfully" });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -497,9 +526,11 @@ export const isUserintheGroup: RequestHandler = async (
       return res.status(200).json({ success: true, user: false });
     }
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -534,9 +565,11 @@ export const getUserInfo: RequestHandler = async (
       totalGroups: totalGroups,
     });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -680,9 +713,11 @@ export const editProfileInfo: RequestHandler = async (
   } catch (err) {
     console.log(err);
     clearfiles(req.files);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -698,9 +733,11 @@ export const getGroupJoinUrl: RequestHandler = async (
 
     return res.status(200).redirect(url);
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -742,9 +779,11 @@ export const generateQrCode = async (
     });
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -778,9 +817,11 @@ export const getUserInfoById = async (
       totalGroups: totalGroups,
     });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -823,9 +864,11 @@ export const leavethegroup = async (
       .status(200)
       .json({ success: false, message: "You left the group" });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -948,9 +991,11 @@ export const createEvent = async (
       .json({ success: true, message: "Your event creatd successfully." });
   } catch (err) {
     clearfiles(req.files);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -964,9 +1009,11 @@ export const getEvents = async (
 
     return res.status(200).json({ success: true, message: events });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -992,9 +1039,11 @@ export const getEventDetails = async (
     return res.status(200).json({ success: true, message: event });
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -1006,6 +1055,127 @@ export const testingController: RequestHandler = async (
   try {
     return res.status(200).json({ success: true, message: "Good...." });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Server error" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
+  }
+};
+
+export const createJobs: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      name,
+      description,
+      qualifications,
+      form,
+      link,
+      postingDate,
+      schedule,
+      department,
+      college,
+    }: {
+      name: string;
+      description: string;
+      qualifications: string;
+      form: string;
+      link: string;
+      postingDate: string;
+      schedule: string;
+      department: string;
+      college: string;
+    } = req.body;
+
+    if (
+      !name.trim() ||
+      !description.trim() ||
+      !qualifications.trim() ||
+      !form.trim() ||
+      !link.trim() ||
+      !postingDate.trim() ||
+      !schedule.trim() ||
+      !department.trim() ||
+      !college.trim()
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    await prisma.job.create({
+      data: {
+        name: name,
+        description: description,
+        qualifications: qualifications,
+        form: form,
+        link: link,
+        postingDate: postingDate,
+        schedule: schedule,
+        department: department,
+        college: college,
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Jobs created successfully" });
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getJobs: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const jobs = await prisma.job.findMany({});
+
+    return res.status(200).json({ success: true, message: jobs });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getJobDetails: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { job_id } = req.params;
+
+    const job = await prisma.job.findUnique({
+      where: { id: parseInt(job_id) },
+    });
+
+    if (!job) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Job with gived id does not exists" });
+    }
+
+    return res.status(200).json({ success: true, message: job });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
   }
 };

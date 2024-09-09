@@ -146,10 +146,11 @@ export const getMessagesByGroup: RequestHandler = async (
 
     return res.status(200).json({ success: true, message: messages.reverse() });
   } catch (err) {
-    console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };
 
@@ -178,9 +179,10 @@ export const updateDeliverStatusOnConnection: RequestHandler = async (
       .status(200)
       .json({ success: true, message: "Messages Updated successfully" });
   } catch (err) {
-    console.log(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Server error occurred" });
+    }
   }
 };

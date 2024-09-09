@@ -20,6 +20,9 @@ import {
   getEvents,
   getEventDetails,
   getGroups,
+  createJobs,
+  getJobDetails,
+  getJobs,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -97,3 +100,9 @@ userRouter.route("/getEvents").get(protect, getEvents);
 userRouter.route("/getEventDetails/:event_id").get(protect, getEventDetails);
 
 userRouter.route("/getGroups").get(protect, getGroups);
+
+userRouter.route("/createJobs").post(protect, createJobs);
+
+userRouter.route("/getJobs").get(protect, getJobs);
+
+userRouter.route("/getJobDetails/:job_id").get(protect, getJobDetails);

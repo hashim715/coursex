@@ -1,4 +1,4 @@
-import express, { Application } from "express";
+import express, { Application, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { chatController } from "./controllers/chatController";
@@ -9,11 +9,14 @@ import { clearRedisRouter } from "./routes/redisClearRoutes";
 import { testingChatRouter } from "./routes/testingChatRoutes";
 import { tokenRouter } from "./routes/tokenRoutes";
 import { chatRouter } from "./routes/chatRoutes";
+import { timeOutRouter } from "./routes/timeOutRoutes";
+import { verificationRouter } from "./routes/verificationRoutes";
 import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
 import path from "path";
 import { createTopic } from "./config/kafka";
+import timeout from "connect-timeout";
 
 dotenv.config();
 
@@ -25,8 +28,24 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, "public")));
+
+app.use(timeout("5s"));
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  if (req.timedout) {
+    return res.status(503).json({
+      success: false,
+      message: "Your request has timed out. Please try again later.",
+    });
+  }
+  return res
+    .status(500)
+    .json({ success: false, message: "Something went wrong try again.." });
+});
 
 app.use("/api/user", userRouter);
 
@@ -37,6 +56,25 @@ app.use("/api/chat", testingChatRouter);
 app.use("/api/token", tokenRouter);
 
 app.use("/api/chats", chatRouter);
+
+app.use("/api/timeOut", timeOutRouter);
+
+app.use("/api/verify", verificationRouter);
+
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  if (req.timedout) {
+    return res.status(503).json({
+      success: false,
+      message: "Your request has timed out. Please try again later.",
+    });
+  }
+  return res
+    .status(500)
+    .json({ success: false, message: "Something went wrong try again.." });
+});
 
 const server: http.Server = http.createServer(app);
 

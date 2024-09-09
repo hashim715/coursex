@@ -19,8 +19,10 @@ export const refreshToken: RequestHandler = async (
 
     await sendToken(user.username, 200, res);
   } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "You are not authorized user" });
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "You are not authorized user" });
+    }
   }
 };

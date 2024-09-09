@@ -27,6 +27,8 @@ model User {
   updatedAt DateTime @updatedAt
   token String?
   events Event[]
+  verification_code String?
+  verification_token_expiry String?
 }
 
 model Group {
@@ -51,4 +53,17 @@ model Event {
   startTime String
   endTime String
   image String? @default("https://cdn-icons-png.flaticon.com/512/1911/1911087.png")
+}
+
+model Job {
+  id Int @id @default(autoincrement())
+  name String
+  description String
+  qualifications String
+  link String
+  form String
+  postingDate String
+  schedule String
+  department String
+  college String
 }

@@ -96,7 +96,7 @@ export const produceMessage = async (message: string): Promise<void> => {
     console.log("Producer connected");
 
     await producer.send({
-      messages: [{ key: `message-local`, value: message, partition: 0 }],
+      messages: [{ key: `message-dev`, value: message }],
       topic: "MESSAGES",
     });
   } catch (err) {
@@ -134,6 +134,8 @@ const saveMessageToDB = async (message: string) => {
       createdAt: Date;
       updatedAt: Date;
       token: string | null;
+      verification_code: string;
+      verification_token_expiry: string;
     };
 
     if (group_members) {

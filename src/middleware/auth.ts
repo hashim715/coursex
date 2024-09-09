@@ -36,10 +36,11 @@ export const protect = async (
     }
     next();
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      success: false,
-      message: "You are not authorized to access this route",
-    });
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "You are not authorized to access this route",
+      });
+    }
   }
 };
