@@ -134,8 +134,11 @@ const saveMessageToDB = async (message: string) => {
       createdAt: Date;
       updatedAt: Date;
       token: string | null;
-      verification_code: string;
-      verification_token_expiry: string;
+      verification_token: string | null;
+      verification_token_expiry: string | null;
+      verification_secret: string | null;
+      isUserVerified: boolean;
+      resetPasswordVerification: boolean;
     };
 
     if (group_members) {

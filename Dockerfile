@@ -16,8 +16,6 @@ RUN npm run build
 
 RUN npx prisma generate 
 
-# RUN npx prisma migrate dev --name init
-
 EXPOSE 5000
 
 RUN chown -R node /usr/src/app

@@ -12,8 +12,6 @@ import fs from "fs";
 import { s3 } from "../config/aws_s3";
 import { deleteImageByUrl } from "../utils/deleteimagefroms3";
 import QRCode from "qrcode";
-// import { sendemail } from "../utils/sendEmail";
-import { generateVerificationCode } from "../utils/getVerificationCode";
 
 type User = {
   id: number;
@@ -28,8 +26,11 @@ type User = {
   createdAt: Date;
   updatedAt: Date;
   token: string | null;
-  verification_code: string;
-  verification_token_expiry: string;
+  verification_token: string | null;
+  verification_token_expiry: string | null;
+  verification_secret: string | null;
+  isUserVerified: boolean;
+  resetPasswordVerification: boolean;
 };
 
 export const getTokenFunc = (req: Request) => {
@@ -111,31 +112,24 @@ export const register: RequestHandler = async (
     const salt: string = await bcrypt.genSalt(10);
     password = await bcrypt.hash(password, salt);
 
-    const verification_token = generateVerificationCode();
-
-    const currentDate = new Date();
-    const next24Hours = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-
     user = await prisma.user.create({
       data: {
         username: username,
         email: email,
         password: password,
         name: name,
-        verification_code: verification_token,
-        verification_token_expiry: next24Hours.toISOString(),
       },
     });
 
-    // send email
-
-    await sendToken(username, 201, res);
+    return res
+      .status(200)
+      .json({ success: true, message: "User registered successfully" });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -159,6 +153,13 @@ export const login: RequestHandler = async (
         message: "User with that email does not exists",
       });
     }
+
+    if (!user.isUserVerified) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Your account is not verified" });
+    }
+
     const isMatch = await matchPassword(password, user.password);
     if (!isMatch) {
       return res
