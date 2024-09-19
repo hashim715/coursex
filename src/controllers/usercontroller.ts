@@ -19,7 +19,6 @@ type User = {
   name: string;
   email: string;
   password: string;
-  year: string;
   college: string | null;
   image: string | null;
   courses: string[];
@@ -558,12 +557,15 @@ export const getUserInfo: RequestHandler = async (
       select: { groups: true },
     });
 
+    const albums = await prisma.album.findMany({ where: { user_id: user.id } });
+
     const totalGroups = groups.groups.length;
 
     return res.status(200).json({
       success: true,
       message: user,
       totalGroups: totalGroups,
+      albums: albums,
     });
   } catch (err) {
     if (!res.headersSent) {
@@ -809,6 +811,8 @@ export const getUserInfoById = async (
       select: { groups: true },
     });
 
+    const albums = await prisma.album.findMany({ where: { user_id: user.id } });
+
     const totalGroups = groups.groups.length;
 
     return res.status(200).json({
@@ -816,6 +820,7 @@ export const getUserInfoById = async (
       message: user,
       groups: groups,
       totalGroups: totalGroups,
+      albums: albums,
     });
   } catch (err) {
     if (!res.headersSent) {
@@ -1172,6 +1177,141 @@ export const getJobDetails: RequestHandler = async (
     }
 
     return res.status(200).json({ success: true, message: job });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const createAlbum: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      theme_name,
+      album_title,
+      album_description,
+      album_cover,
+      album_photos,
+    }: {
+      theme_name: string;
+      album_title: string;
+      album_description: string;
+      album_cover: string;
+      album_photos: string;
+    } = req.body;
+
+    if (
+      !theme_name.trim() ||
+      !album_title.trim() ||
+      !album_description.trim() ||
+      !album_cover.trim() ||
+      !album_photos.trim()
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    const album_photos_: Array<string> = JSON.parse(album_photos);
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    await prisma.album.create({
+      data: {
+        name: album_title,
+        description: album_description,
+        theme_name: theme_name,
+        album_cover: album_cover,
+        album_photos: album_photos_,
+        user_id: user.id,
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Your album created successfully" });
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getAlbumns: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    const albums = await prisma.album.findMany({ where: { user_id: user.id } });
+
+    return res.status(200).json({ success: true, message: albums });
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getSingleAlbum: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { album_id } = req.params;
+
+    const album_id_ = parseInt(album_id);
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    const album = await prisma.album.findUnique({ where: { id: album_id_ } });
+
+    return res.status(200).json({ success: true, message: album });
   } catch (err) {
     if (!res.headersSent) {
       return res

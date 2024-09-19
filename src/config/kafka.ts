@@ -127,7 +127,6 @@ const saveMessageToDB = async (message: string) => {
       name: string;
       email: string;
       password: string;
-      year: string;
       college: string | null;
       image: string | null;
       courses: string[];

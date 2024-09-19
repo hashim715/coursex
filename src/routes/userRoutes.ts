@@ -23,6 +23,9 @@ import {
   createJobs,
   getJobDetails,
   getJobs,
+  createAlbum,
+  getAlbumns,
+  getSingleAlbum,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -106,3 +109,9 @@ userRouter.route("/createJobs").post(protect, createJobs);
 userRouter.route("/getJobs").get(protect, getJobs);
 
 userRouter.route("/getJobDetails/:job_id").get(protect, getJobDetails);
+
+userRouter.route("/createAlbum").post(protect, createAlbum);
+
+userRouter.route("/getAlbums").get(protect, getAlbumns);
+
+userRouter.route("/getSingleAlbum/:album_id").get(protect, getSingleAlbum);

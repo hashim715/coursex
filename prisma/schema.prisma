@@ -32,6 +32,7 @@ model User {
   verification_token_expiry String?
   isUserVerified Boolean @default(false)
   resetPasswordVerification Boolean @default(false)
+  albums Album[]
 }
 
 model Group {
@@ -56,6 +57,17 @@ model Event {
   startTime String
   endTime String
   image String? @default("https://cdn-icons-png.flaticon.com/512/1911/1911087.png")
+}
+
+model Album {
+  id Int @id @default(autoincrement())
+  user_id Int
+  user User @relation(fields: [user_id],references: [id], onDelete: Cascade)
+  name String
+  description String
+  theme_name String
+  album_cover String
+  album_photos String[]
 }
 
 model Job {
