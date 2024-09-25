@@ -74,13 +74,7 @@ userRouter.route("/isUserexists/:group_id").get(protect, isUserintheGroup);
 
 userRouter.route("/getuserinfo").get(protect, getUserInfo);
 
-userRouter
-  .route("/updateUserInfo")
-  .post(
-    protect,
-    uploadProfileImage.fields([{ name: "image", maxCount: 1 }]),
-    editProfileInfo
-  );
+userRouter.route("/updateUserInfo").post(protect, editProfileInfo);
 
 userRouter.route("/getGroupJoinUrl/:group_id").get(getGroupJoinUrl);
 

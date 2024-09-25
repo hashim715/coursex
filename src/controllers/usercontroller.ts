@@ -19,9 +19,15 @@ type User = {
   name: string;
   email: string;
   password: string;
-  college: string | null;
-  image: string | null;
-  courses: string[];
+  college: string;
+  year: string;
+  image: string;
+  cover_image: string;
+  courses: string;
+  theme: string;
+  fraternity: string;
+  relationship_status: string;
+  major: string;
   createdAt: Date;
   updatedAt: Date;
   token: string | null;
@@ -582,27 +588,46 @@ export const editProfileInfo: RequestHandler = async (
   next: NextFunction
 ): Promise<Response> => {
   try {
-    let {
+    const {
       name,
       college,
       courses,
-    }: { name: string; college: string; courses: string } = req.body;
+      year,
+      major,
+      fraternity,
+      relationship_status,
+      theme,
+      profile_image,
+      cover_image,
+    }: {
+      name: string;
+      college: string;
+      courses: string;
+      year: string;
+      major: string;
+      fraternity: string;
+      relationship_status: string;
+      theme: string;
+      profile_image: string;
+      cover_image: string;
+    } = req.body;
 
-    if (!name || !college || !courses) {
-      clearfiles(req.files);
+    if (
+      !name.trim() ||
+      !college.trim() ||
+      !courses.trim() ||
+      !year.trim() ||
+      !major.trim() ||
+      !fraternity.trim() ||
+      !relationship_status.trim() ||
+      !theme.trim() ||
+      !profile_image.trim() ||
+      !cover_image.trim()
+    ) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
     }
-
-    if (!name.trim() || !college.trim() || !courses.trim()) {
-      clearfiles(req.files);
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide valid inputs" });
-    }
-
-    const courses_: Array<string> = JSON.parse(courses);
 
     const token = getTokenFunc(req);
 
@@ -611,111 +636,32 @@ export const editProfileInfo: RequestHandler = async (
     const user = await prisma.user.findFirst({ where: { username: username } });
 
     if (!user) {
-      clearfiles(req.files);
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    const fileTypes = /jpeg|jpg|png|gif/;
-    let filename: string | null;
-    let imageUrl: string | null;
-
-    if (Array.isArray(req.files)) {
-      const file = req.files[0];
-      const extname = fileTypes.test(
-        path.extname(file.originalname).toLowerCase()
-      );
-      const mimetype = fileTypes.test(file.mimetype);
-      if (!extname || !mimetype) {
-        clearfiles(req.files);
-        return res.status(400).json({
-          success: false,
-          message: "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
-        });
-      }
-
-      const date = Date.now();
-      filename = "uploads/profile/" + date + req.files[0].originalname;
-      renameSync(req.files[0].path, filename);
-
-      const fileContent = fs.readFileSync(filename);
-
-      const params = {
-        Bucket: "w-groupchat-images",
-        Key: `${Date.now()}_${file.originalname}`,
-        Body: fileContent,
-        ContentType: "image/jpeg",
-      };
-
-      await deleteImageByUrl(user.image, "w-groupchat-images");
-
-      const s3Response = await s3.upload(params).promise();
-      imageUrl = s3Response.Location;
-    } else if (req.files && req.files["image"]) {
-      const file = req.files["image"][0];
-      const extname = fileTypes.test(
-        path.extname(file.originalname).toLowerCase()
-      );
-      const mimetype = fileTypes.test(file.mimetype);
-      if (!extname || !mimetype) {
-        clearfiles(req.files);
-        return res.status(400).json({
-          success: false,
-          message: "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
-        });
-      }
-
-      const date = Date.now();
-      filename = "uploads/profile/" + date + req.files["image"][0].originalname;
-      renameSync(req.files["image"][0].path, filename);
-
-      const fileContent = fs.readFileSync(filename);
-
-      const params = {
-        Bucket: "w-groupchat-images",
-        Key: `${Date.now()}_${file.originalname}`,
-        Body: fileContent,
-        ContentType: "image/jpeg",
-      };
-
-      await deleteImageByUrl(user.image, "w-groupchat-images");
-
-      const s3Response = await s3.upload(params).promise();
-      imageUrl = s3Response.Location;
-    }
-
-    if (filename && imageUrl) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          name: name,
-          courses: courses_,
-          college: college,
-          image: imageUrl,
-        },
-      });
-    } else {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          name: name,
-          courses: courses_,
-          college: college,
-        },
-      });
-    }
-
-    if (filename) {
-      fs.unlinkSync(filename);
-    }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: name,
+        courses: courses,
+        college: college,
+        year: year,
+        major: major,
+        relationship_status: relationship_status,
+        theme: theme,
+        image: profile_image,
+        cover_image: cover_image,
+        fraternity: fraternity,
+      },
+    });
 
     return res
       .status(200)
       .json({ success: true, message: "User profile updated successfully" });
   } catch (err) {
     console.log(err);
-    clearfiles(req.files);
     if (!res.headersSent) {
       return res
         .status(500)

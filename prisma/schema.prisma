@@ -19,9 +19,11 @@ model User {
   name String
   email String @unique()
   password String
-  college String?
-  image String? @default("https://cdn1.iconfinder.com/data/icons/user-pics/512/user_add-512.png")
-  courses String[] @default(["","","","",""]) 
+  college String @default("University of Houston-Downtown")
+  courses String @default("courses")
+  year String @default("Freshmen")
+  image String @default("https://cdn1.iconfinder.com/data/icons/user-pics/512/user_add-512.png")
+  cover_image String @default("https://cdn1.iconfinder.com/data/icons/user-pics/512/user_add-512.png")
   groups Group[]  @relation("UserGroups")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -33,6 +35,10 @@ model User {
   isUserVerified Boolean @default(false)
   resetPasswordVerification Boolean @default(false)
   albums Album[]
+  theme String @default("https://assets.api.uizard.io/api/cdn/stream/e16a6e9f-6b62-42cd-a233-9b3620639bd2.jpg")
+  fraternity String @default("Sigma Alpha Epsilon")
+  relationship_status String @default("Single")
+  major String @default("Majors")
 }
 
 model Group {
