@@ -26,6 +26,12 @@ import {
   createAlbum,
   getAlbumns,
   getSingleAlbum,
+  getRecentAlbums,
+  getRecentEvents,
+  getRecentGroups,
+  getEventsByUser,
+  getRecentUsers,
+  getMixedEventsAndAlbums,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -46,13 +52,7 @@ export const userRouter: Router = express.Router();
 
 userRouter.route("/register").post(register);
 userRouter.route("/login").post(login);
-userRouter
-  .route("/createGroup")
-  .post(
-    protect,
-    uploadGroupImage.fields([{ name: "image", maxCount: 1 }]),
-    createGroup
-  );
+userRouter.route("/createGroup").post(protect, createGroup);
 userRouter
   .route("/testing")
   .post(
@@ -84,13 +84,7 @@ userRouter.route("/getUerInfoById/:id").get(protect, getUserInfoById);
 
 userRouter.route("/leaveGroup/:group_id").post(protect, leavethegroup);
 
-userRouter
-  .route("/createEvent")
-  .post(
-    protect,
-    uploadEventImage.fields([{ name: "image", maxCount: 1 }]),
-    createEvent
-  );
+userRouter.route("/createEvent").post(protect, createEvent);
 
 userRouter.route("/getEvents").get(protect, getEvents);
 
@@ -109,3 +103,17 @@ userRouter.route("/createAlbum").post(protect, createAlbum);
 userRouter.route("/getAlbums").get(protect, getAlbumns);
 
 userRouter.route("/getSingleAlbum/:album_id").get(protect, getSingleAlbum);
+
+userRouter.route("/getRecentEvents").get(protect, getRecentEvents);
+
+userRouter.route("/getRecentAlbums").get(protect, getRecentAlbums);
+
+userRouter.route("/getRecentGroups").get(protect, getRecentGroups);
+
+userRouter.route("/getEventsByUser").get(protect, getEventsByUser);
+
+userRouter.route("/getRecentUsers").get(protect, getRecentUsers);
+
+userRouter
+  .route("/getMixedEventsAndAlbums")
+  .get(protect, getMixedEventsAndAlbums);

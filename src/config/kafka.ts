@@ -144,6 +144,8 @@ const saveMessageToDB = async (message: string) => {
       verification_secret: string | null;
       isUserVerified: boolean;
       resetPasswordVerification: boolean;
+      clubs: string;
+      theme_color: string;
     };
 
     if (group_members) {

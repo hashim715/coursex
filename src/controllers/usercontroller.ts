@@ -11,32 +11,11 @@ import { renameSync } from "fs";
 import fs from "fs";
 import { s3 } from "../config/aws_s3";
 import { deleteImageByUrl } from "../utils/deleteimagefroms3";
+import { shuffleItems } from "../utils/shuffleItem";
+import { mergeItems } from "../utils/mergeItems";
 import QRCode from "qrcode";
-
-type User = {
-  id: number;
-  username: string;
-  name: string;
-  email: string;
-  password: string;
-  college: string;
-  year: string;
-  image: string;
-  cover_image: string;
-  courses: string;
-  theme: string;
-  fraternity: string;
-  relationship_status: string;
-  major: string;
-  createdAt: Date;
-  updatedAt: Date;
-  token: string | null;
-  verification_token: string | null;
-  verification_token_expiry: string | null;
-  verification_secret: string | null;
-  isUserVerified: boolean;
-  resetPasswordVerification: boolean;
-};
+import { redisClient } from "../config/redisClient";
+import { Group, Group2, Event, Album, User2 } from "../utils/dataTypes";
 
 export const getTokenFunc = (req: Request) => {
   let token: string;
@@ -188,10 +167,9 @@ export const createGroup: RequestHandler = async (
   next: NextFunction
 ): Promise<Response> => {
   try {
-    const { name, college, description } = req.body;
+    const { name, college, description, image } = req.body;
 
     if (!name.trim() || !college.trim() || !description.trim()) {
-      clearfiles(req.files);
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -204,88 +182,20 @@ export const createGroup: RequestHandler = async (
     const user = await prisma.user.findFirst({ where: { username: username } });
 
     if (!user) {
-      clearfiles(req.files);
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    const fileTypes = /jpeg|jpg|png|gif/;
-    let filename: string | null;
-    let imageUrl: string | null;
-
-    if (Array.isArray(req.files)) {
-      const file = req.files[0];
-      const extname = fileTypes.test(
-        path.extname(file.originalname).toLowerCase()
-      );
-      const mimetype = fileTypes.test(file.mimetype);
-      if (!extname || !mimetype) {
-        clearfiles(req.files);
-        return res.status(400).json({
-          success: false,
-          message: "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
-        });
-      }
-
-      const date = Date.now();
-      filename = "uploads/groups/" + date + req.files[0].originalname;
-      renameSync(req.files[0].path, filename);
-
-      const fileContent = fs.readFileSync(filename);
-
-      const params = {
-        Bucket: "w-groupchat-images",
-        Key: `${Date.now()}_${file.originalname}`,
-        Body: fileContent,
-        ContentType: "image/jpeg",
-        //ACL: 'public-read',
-      };
-
-      const s3Response = await s3.upload(params).promise();
-      imageUrl = s3Response.Location;
-    } else if (req.files && req.files["image"]) {
-      const file = req.files["image"][0];
-      const extname = fileTypes.test(
-        path.extname(file.originalname).toLowerCase()
-      );
-      const mimetype = fileTypes.test(file.mimetype);
-      if (!extname || !mimetype) {
-        clearfiles(req.files);
-        return res.status(400).json({
-          success: false,
-          message: "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
-        });
-      }
-
-      const date = Date.now();
-      filename = "uploads/groups/" + date + req.files["image"][0].originalname;
-      renameSync(req.files["image"][0].path, filename);
-
-      const fileContent = fs.readFileSync(filename);
-
-      const params = {
-        Bucket: "w-groupchat-images",
-        Key: `${Date.now()}_${file.originalname}`,
-        Body: fileContent,
-        ContentType: "image/jpeg",
-        //ACL: 'public-read',
-      };
-
-      const s3Response = await s3.upload(params).promise();
-      imageUrl = s3Response.Location;
-    }
-
     let group;
-
-    if (filename && imageUrl) {
+    if (image) {
       group = await prisma.group.create({
         data: {
           name: name,
           college: college,
           description: description,
           admins: [user.id],
-          image: imageUrl,
+          image: image,
         },
       });
     } else {
@@ -309,8 +219,58 @@ export const createGroup: RequestHandler = async (
       data: { users: { connect: { id: user.id } } },
     });
 
-    if (filename) {
-      fs.unlinkSync(filename);
+    const groups: string = await redisClient.get("groups");
+
+    const group_members = await prisma.group.findUnique({
+      where: { id: group.id },
+      select: { users: true },
+    });
+
+    if (groups) {
+      const groups_: Array<Group2> = JSON.parse(groups);
+
+      const group_data = {
+        id: group.id,
+        name: group.name,
+        image: group.image,
+        admins: group.admins,
+        college: group.college,
+        description: group.description,
+        createdAt: group.createdAt,
+        updatedAt: group.updatedAt,
+        _count: { users: group_members.users.length },
+      };
+
+      groups_.unshift(group_data);
+
+      await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+    }
+
+    const user_groups: string = await redisClient.get(
+      `${user.username}-groups`
+    );
+
+    if (user_groups) {
+      const _groups: Array<Group> = JSON.parse(user_groups);
+
+      const group_data = {
+        id: group.id,
+        name: group.name,
+        image: group.image,
+        admins: group.admins,
+        college: group.college,
+        description: group.description,
+        createdAt: group.createdAt,
+        updatedAt: group.updatedAt,
+      };
+
+      _groups.unshift(group_data);
+
+      await redisClient.setEx(
+        `${user.username}-groups`,
+        1800,
+        JSON.stringify(_groups)
+      );
     }
 
     return res
@@ -318,7 +278,6 @@ export const createGroup: RequestHandler = async (
       .json({ success: true, message: "Group created successfully" });
   } catch (err) {
     console.log(err);
-    clearfiles(req.files);
     if (!res.headersSent) {
       return res
         .status(500)
@@ -345,12 +304,26 @@ export const getGroupsByUser: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
-    const groups = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { groups: true },
-    });
+    const groups: string = await redisClient.get(`${user.name}-groups`);
 
-    return res.status(200).json({ success: true, message: groups.groups });
+    if (groups) {
+      const groups_: Array<Group> = JSON.parse(groups);
+
+      return res.status(200).json({ success: true, message: groups_ });
+    } else {
+      const groups = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { groups: { orderBy: { createdAt: "desc" } } },
+      });
+
+      await redisClient.setEx(
+        `${user.username}-groups`,
+        1800,
+        JSON.stringify(groups.groups)
+      );
+
+      return res.status(200).json({ success: true, message: groups.groups });
+    }
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -430,9 +403,30 @@ export const getGroups = async (
   next: NextFunction
 ) => {
   try {
-    const groups = await prisma.group.findMany({});
+    const groups: string = await redisClient.get(`groups`);
 
-    return res.status(200).json({ success: true, message: groups });
+    if (groups) {
+      const groups_: Array<Group2> = JSON.parse(groups);
+
+      return res.status(200).json({ success: true, message: groups_ });
+    } else {
+      const groups = await prisma.group.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          _count: {
+            select: {
+              users: true,
+            },
+          },
+        },
+      });
+
+      await redisClient.setEx("groups", 1800, JSON.stringify(groups));
+
+      return res.status(200).json({ success: true, message: groups });
+    }
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -476,6 +470,51 @@ export const joinGroups: RequestHandler = async (
       where: { id: user.id },
       data: { groups: { connect: { id: group.id } } },
     });
+
+    const groups: string = await redisClient.get("groups");
+
+    if (groups) {
+      const groups_: Array<Group2> = JSON.parse(groups);
+
+      const group_element: Group2 = groups_.find(
+        (element) => element.id === group.id
+      );
+
+      if (group_element) {
+        const index = groups_.indexOf(group_element);
+        group_element._count.users = group_element._count.users + 1;
+        groups_[index] = group_element;
+      }
+
+      await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+    }
+
+    const user_groups: string = await redisClient.get(
+      `${user.username}-groups`
+    );
+
+    if (user_groups) {
+      const _groups: Array<Group> = JSON.parse(user_groups);
+
+      const group_data = {
+        id: group.id,
+        name: group.name,
+        image: group.image,
+        admins: group.admins,
+        college: group.college,
+        description: group.description,
+        createdAt: group.createdAt,
+        updatedAt: group.updatedAt,
+      };
+
+      _groups.unshift(group_data);
+
+      await redisClient.setEx(
+        `${user.username}-groups`,
+        1800,
+        JSON.stringify(_groups)
+      );
+    }
 
     return res
       .status(200)
@@ -599,6 +638,8 @@ export const editProfileInfo: RequestHandler = async (
       theme,
       profile_image,
       cover_image,
+      theme_color,
+      clubs,
     }: {
       name: string;
       college: string;
@@ -610,6 +651,8 @@ export const editProfileInfo: RequestHandler = async (
       theme: string;
       profile_image: string;
       cover_image: string;
+      theme_color: string;
+      clubs: string;
     } = req.body;
 
     if (
@@ -622,7 +665,9 @@ export const editProfileInfo: RequestHandler = async (
       !relationship_status.trim() ||
       !theme.trim() ||
       !profile_image.trim() ||
-      !cover_image.trim()
+      !cover_image.trim() ||
+      !theme_color.trim() ||
+      !clubs.trim()
     ) {
       return res
         .status(400)
@@ -654,6 +699,8 @@ export const editProfileInfo: RequestHandler = async (
         image: profile_image,
         cover_image: cover_image,
         fraternity: fraternity,
+        theme_color: theme_color,
+        clubs: clubs,
       },
     });
 
@@ -812,6 +859,32 @@ export const leavethegroup = async (
       data: { groups: { disconnect: { id: group.id } } },
     });
 
+    const groups: string = await redisClient.get("groups");
+
+    if (groups) {
+      let groups_: Array<Group2> = JSON.parse(groups);
+
+      groups_ = groups_.filter((element) => element.id !== group.id);
+
+      await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+    }
+
+    const user_groups: string = await redisClient.get(
+      `${user.username}-groups`
+    );
+
+    if (user_groups) {
+      let _groups: Array<Group> = JSON.parse(user_groups);
+
+      _groups = _groups.filter((element) => element.id !== group.id);
+
+      await redisClient.setEx(
+        `${user.username}-groups`,
+        1800,
+        JSON.stringify(_groups)
+      );
+    }
+
     return res
       .status(200)
       .json({ success: false, message: "You left the group" });
@@ -836,12 +909,14 @@ export const createEvent = async (
       description,
       startTime,
       endTime,
+      image,
     }: {
       name: string;
       location: string;
       description: string;
       startTime: string;
       endTime: string;
+      image: string;
     } = req.body;
 
     if (
@@ -851,7 +926,6 @@ export const createEvent = async (
       !startTime.trim() ||
       !endTime.trim()
     ) {
-      clearfiles(req.files);
       return res.status(400).json({
         success: false,
         message: "Please fill out the form correctly",
@@ -864,58 +938,10 @@ export const createEvent = async (
 
     const user = await prisma.user.findFirst({ where: { username: username } });
 
-    const files_ = req.files as { [fieldname: string]: Express.Multer.File[] };
-    const files: Express.Multer.File[] = files_["image"];
+    let event;
 
-    const fileTypes = /jpeg|jpg|png|gif/;
-
-    let imageUrl: string;
-
-    if (Array.isArray(files)) {
-      for (const file of files) {
-        const extname = fileTypes.test(
-          path.extname(file.originalname).toLowerCase()
-        );
-        const mimetype = fileTypes.test(file.mimetype);
-
-        if (!extname || !mimetype) {
-          clearfiles(req.files);
-          return res.status(400).json({
-            success: false,
-            message:
-              "Invalid file format. Only JPEG, PNG, and GIF are allowed.",
-          });
-        }
-
-        const date = Date.now();
-        const filename = "uploads/events/" + date + file.originalname;
-        renameSync(file.path, filename);
-
-        const fileContent = fs.readFileSync(filename);
-
-        const params = {
-          Bucket: "w-groupchat-images",
-          Key: `${Date.now()}_${file.originalname}`,
-          Body: fileContent,
-          ContentType: "image/jpeg",
-        };
-
-        try {
-          const s3Response = await s3.upload(params).promise();
-          imageUrl = s3Response.Location;
-          fs.unlinkSync(filename);
-        } catch (error) {
-          clearfiles(req.files);
-          return res.status(400).json({
-            success: false,
-            message: "Error while uploading images try again",
-          });
-        }
-      }
-    }
-
-    if (imageUrl) {
-      await prisma.event.create({
+    if (image) {
+      event = await prisma.event.create({
         data: {
           name: name,
           adminId: user.id,
@@ -923,11 +949,11 @@ export const createEvent = async (
           description: description,
           startTime: startTime,
           endTime: endTime,
-          image: imageUrl,
+          image: image,
         },
       });
     } else {
-      await prisma.event.create({
+      event = await prisma.event.create({
         data: {
           name: name,
           adminId: user.id,
@@ -938,11 +964,34 @@ export const createEvent = async (
         },
       });
     }
+
+    const events: string = await redisClient.get("events");
+    const recent_events: string = await redisClient.get("recent-events");
+
+    if (events) {
+      const events_: Array<Event> = JSON.parse(events);
+
+      events_.unshift(event);
+
+      await redisClient.setEx("events", 1800, JSON.stringify(events_));
+    }
+
+    if (recent_events) {
+      const recent_events_: Array<Event> = JSON.parse(recent_events);
+
+      recent_events_.unshift(event);
+
+      await redisClient.setEx(
+        "recent-events",
+        1800,
+        JSON.stringify(recent_events_)
+      );
+    }
+
     return res
       .status(200)
       .json({ success: true, message: "Your event creatd successfully." });
   } catch (err) {
-    clearfiles(req.files);
     if (!res.headersSent) {
       return res
         .status(500)
@@ -957,9 +1006,21 @@ export const getEvents = async (
   next: NextFunction
 ) => {
   try {
-    const events = await prisma.event.findMany({});
+    const events: string = await redisClient.get("events");
 
-    return res.status(200).json({ success: true, message: events });
+    if (events) {
+      const events_: Array<Event> = JSON.parse(events);
+
+      return res.status(200).json({ success: true, message: events_ });
+    } else {
+      const events = await prisma.event.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+
+      await redisClient.setEx("events", 1800, JSON.stringify(events));
+
+      return res.status(200).json({ success: true, message: events });
+    }
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -1178,7 +1239,7 @@ export const createAlbum: RequestHandler = async (
         .json({ success: false, message: "User does not exists" });
     }
 
-    await prisma.album.create({
+    const album = await prisma.album.create({
       data: {
         name: album_title,
         description: album_description,
@@ -1188,6 +1249,33 @@ export const createAlbum: RequestHandler = async (
         user_id: user.id,
       },
     });
+
+    const albums: string = await redisClient.get(`albums-${user.username}`);
+    const recent_albums: string = await redisClient.get("recent-albums");
+
+    if (albums) {
+      const albums_: Array<Album> = JSON.parse(albums);
+
+      albums_.unshift(album);
+
+      await redisClient.setEx(
+        `albums-${user.username}`,
+        1800,
+        JSON.stringify(albums_)
+      );
+    }
+
+    if (recent_albums) {
+      const recent_albums_: Array<Album> = JSON.parse(recent_albums);
+
+      recent_albums_.unshift(album);
+
+      await redisClient.setEx(
+        "recent-albums",
+        1800,
+        JSON.stringify(recent_albums_)
+      );
+    }
 
     return res
       .status(200)
@@ -1220,9 +1308,26 @@ export const getAlbumns: RequestHandler = async (
         .json({ success: false, message: "User does not exists" });
     }
 
-    const albums = await prisma.album.findMany({ where: { user_id: user.id } });
+    const albums: string = await redisClient.get(`albums-${user.username}`);
 
-    return res.status(200).json({ success: true, message: albums });
+    if (albums) {
+      const albums_: Array<Album> = JSON.parse(albums);
+
+      return res.status(200).json({ success: true, message: albums_ });
+    } else {
+      const albums = await prisma.album.findMany({
+        where: { user_id: user.id },
+        orderBy: { createdAt: "desc" },
+      });
+
+      await redisClient.setEx(
+        `albums-${user.username}`,
+        1800,
+        JSON.stringify(albums)
+      );
+
+      return res.status(200).json({ success: true, message: albums });
+    }
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
@@ -1258,6 +1363,280 @@ export const getSingleAlbum: RequestHandler = async (
     const album = await prisma.album.findUnique({ where: { id: album_id_ } });
 
     return res.status(200).json({ success: true, message: album });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getRecentEvents: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const now = new Date();
+
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const events: string = await redisClient.get("recent-events");
+
+    if (events) {
+      const events_: Array<Event> = JSON.parse(events);
+
+      return res.status(200).json({ success: true, message: events_ });
+    } else {
+      const events = await prisma.event.findMany({
+        where: {
+          createdAt: {
+            gte: twentyFourHoursAgo,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      await redisClient.setEx("recent-events", 1800, JSON.stringify(events));
+
+      return res.status(200).json({ success: true, message: events });
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getRecentGroups: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const now = new Date();
+
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const groups: string = await redisClient.get("recent-groups");
+
+    if (groups) {
+      const groups_: Array<Group2> = JSON.parse(groups);
+
+      return res.status(200).json({ success: true, message: groups_ });
+    } else {
+      const groups = await prisma.group.findMany({
+        where: {
+          createdAt: {
+            gte: twentyFourHoursAgo,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          _count: {
+            select: {
+              users: true,
+            },
+          },
+        },
+      });
+
+      await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups));
+
+      return res.status(200).json({ success: true, message: groups });
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getRecentAlbums: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const now = new Date();
+
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const albums: string = await redisClient.get("recent-albums");
+
+    if (albums) {
+      const albums_: Array<Album> = JSON.parse(albums);
+
+      return res.status(200).json({ success: true, message: albums_ });
+    } else {
+      const albums = await prisma.album.findMany({
+        where: {
+          createdAt: {
+            gte: twentyFourHoursAgo,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      await redisClient.setEx("recent-albums", 1800, JSON.stringify(albums));
+
+      return res.status(200).json({ success: true, message: albums });
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getEventsByUser: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    const events: string = await redisClient.get(`events-${user.username}`);
+
+    if (events) {
+      const events_: Array<Event> = JSON.parse(events);
+
+      return res.status(200).json({ success: true, message: events_ });
+    } else {
+      const events = await prisma.event.findMany({
+        where: { adminId: user.id },
+        orderBy: { createdAt: "desc" },
+      });
+
+      await redisClient.setEx(
+        `events-${user.username}`,
+        1800,
+        JSON.stringify(events)
+      );
+
+      return res.status(200).json({ success: true, message: events });
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getRecentUsers: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const now = new Date();
+
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const users = await redisClient.get("recent-users");
+
+    if (users) {
+      const users_: Array<User2> = JSON.parse(users);
+
+      return res.status(200).json({ success: true, message: users_ });
+    } else {
+      const users = await prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        where: { createdAt: { gte: twentyFourHoursAgo } },
+      });
+
+      await redisClient.setEx("recent-users", 1800, JSON.stringify(users));
+
+      return res.status(200).json({ success: true, message: users });
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getMixedEventsAndAlbums: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const now = new Date();
+
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const recent_events: string = await redisClient.get("recent-events");
+    let events_: Array<Event>;
+
+    if (recent_events) {
+      events_ = JSON.parse(recent_events);
+    } else {
+      events_ = await prisma.event.findMany({
+        where: {
+          createdAt: {
+            gte: twentyFourHoursAgo,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      await redisClient.setEx("recent-events", 1800, JSON.stringify(events_));
+    }
+
+    const recent_albums: string = await redisClient.get("recent-albums");
+    let albums_: Array<Album>;
+
+    if (recent_albums) {
+      albums_ = JSON.parse(recent_albums);
+    } else {
+      albums_ = await prisma.album.findMany({
+        where: {
+          createdAt: {
+            gte: twentyFourHoursAgo,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      await redisClient.setEx("recent-albums", 1800, JSON.stringify(albums_));
+    }
+
+    const mergedData: Array<Event | Album> = mergeItems(events_, albums_);
+
+    const shuffledData: Array<Event | Album> = shuffleItems(mergedData);
+
+    return res.status(200).json({ success: true, message: shuffledData });
   } catch (err) {
     if (!res.headersSent) {
       return res

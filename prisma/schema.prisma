@@ -39,6 +39,8 @@ model User {
   fraternity String @default("Sigma Alpha Epsilon")
   relationship_status String @default("Single")
   major String @default("Majors")
+  theme_color String @default("451204")
+  clubs String @default("clubs")
 }
 
 model Group {
@@ -63,6 +65,8 @@ model Event {
   startTime String
   endTime String
   image String? @default("https://cdn-icons-png.flaticon.com/512/1911/1911087.png")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Album {
@@ -74,6 +78,8 @@ model Album {
   theme_name String
   album_cover String
   album_photos String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Job {
