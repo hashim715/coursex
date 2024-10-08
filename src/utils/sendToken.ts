@@ -10,7 +10,7 @@ const getSignedToken: Function = async (
   const token = jwt.sign(
     { username: username },
     process.env.JWT_SECRET_REFRESH,
-    { expiresIn: process.env.JWT_REFRESH_EXP }
+    { expiresIn: "10d" }
   );
   const tokens = { token: token };
   const user = await prisma.user.update({
