@@ -226,24 +226,34 @@ export const createGroup: RequestHandler = async (
       select: { users: true },
     });
 
+    const group_data = {
+      id: group.id,
+      name: group.name,
+      image: group.image,
+      admins: group.admins,
+      college: group.college,
+      description: group.description,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+      _count: { users: group_members.users.length },
+    };
+
     if (groups) {
       const groups_: Array<Group2> = JSON.parse(groups);
-
-      const group_data = {
-        id: group.id,
-        name: group.name,
-        image: group.image,
-        admins: group.admins,
-        college: group.college,
-        description: group.description,
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt,
-        _count: { users: group_members.users.length },
-      };
 
       groups_.unshift(group_data);
 
       await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+    }
+
+    const recent_groups: string = await redisClient.get("recent-groups");
+
+    if (recent_groups) {
+      const groups_: Array<Group2> = JSON.parse(recent_groups);
+
+      groups_.unshift(group_data);
+
+      await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
     const user_groups: string = await redisClient.get(
@@ -487,6 +497,24 @@ export const joinGroups: RequestHandler = async (
       }
 
       await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+    }
+
+    const recent_groups: string = await redisClient.get("recent-groups");
+
+    if (recent_groups) {
+      const groups_: Array<Group2> = JSON.parse(recent_groups);
+
+      const group_element: Group2 = groups_.find(
+        (element) => element.id === group.id
+      );
+
+      if (group_element) {
+        const index = groups_.indexOf(group_element);
+        group_element._count.users = group_element._count.users + 1;
+        groups_[index] = group_element;
+      }
+
+      await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
     const user_groups: string = await redisClient.get(
@@ -967,6 +995,7 @@ export const createEvent = async (
 
     const events: string = await redisClient.get("events");
     const recent_events: string = await redisClient.get("recent-events");
+    const user_events: string = await redisClient.get(`events-${username}`);
 
     if (events) {
       const events_: Array<Event> = JSON.parse(events);
@@ -985,6 +1014,18 @@ export const createEvent = async (
         "recent-events",
         1800,
         JSON.stringify(recent_events_)
+      );
+    }
+
+    if (user_events) {
+      const user_events_: Array<Event> = JSON.parse(user_events);
+
+      user_events_.unshift(event);
+
+      await redisClient.setEx(
+        `events-${username}`,
+        1800,
+        JSON.stringify(user_events_)
       );
     }
 
