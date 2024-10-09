@@ -890,11 +890,37 @@ export const leavethegroup = async (
     const groups: string = await redisClient.get("groups");
 
     if (groups) {
-      let groups_: Array<Group2> = JSON.parse(groups);
+      const groups_: Array<Group2> = JSON.parse(groups);
 
-      groups_ = groups_.filter((element) => element.id !== group.id);
+      const group_element: Group2 = groups_.find(
+        (element) => element.id === group.id
+      );
+
+      if (group_element) {
+        const index = groups_.indexOf(group_element);
+        group_element._count.users = group_element._count.users - 1;
+        groups_[index] = group_element;
+      }
 
       await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+    }
+
+    const recent_groups: string = await redisClient.get("recent-groups");
+
+    if (recent_groups) {
+      const groups_: Array<Group2> = JSON.parse(recent_groups);
+
+      const group_element: Group2 = groups_.find(
+        (element) => element.id === group.id
+      );
+
+      if (group_element) {
+        const index = groups_.indexOf(group_element);
+        group_element._count.users = group_element._count.users - 1;
+        groups_[index] = group_element;
+      }
+
+      await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
     const user_groups: string = await redisClient.get(

@@ -59,21 +59,25 @@ const serializeGroupMap = (map: GroupMapType): UserDataType[] => {
 export const DeserializeGroupMap = (data: string): GroupMapType => {
   const entries = JSON.parse(data);
 
-  const groups: GroupMapType = new Map(
-    entries.map(([groupID, userArray]: UserDataType) => [
-      groupID,
-      new Map(
-        userArray.map(([username, socketData]) => [
-          username,
-          {
-            username: socketData.username,
-            socket_ids: new Set<string>(socketData.socket_ids),
-          },
-        ])
-      ),
-    ])
-  );
-  return groups;
+  if (entries) {
+    const groups: GroupMapType = new Map(
+      entries.map(([groupID, userArray]: UserDataType) => [
+        groupID,
+        new Map(
+          userArray.map(([username, socketData]) => [
+            username,
+            {
+              username: socketData.username,
+              socket_ids: new Set<string>(socketData.socket_ids),
+            },
+          ])
+        ),
+      ])
+    );
+    return groups;
+  } else {
+    return null;
+  }
 };
 
 export const RemoveFromGroupRoomMap = async (
