@@ -219,7 +219,7 @@ export const createGroup: RequestHandler = async (
       data: { users: { connect: { id: user.id } } },
     });
 
-    const groups: string = await redisClient.get("groups");
+    const groups: string = await redisClient.get("total_client_groups");
 
     const group_members = await prisma.group.findUnique({
       where: { id: group.id },
@@ -243,7 +243,11 @@ export const createGroup: RequestHandler = async (
 
       groups_.unshift(group_data);
 
-      await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+      await redisClient.setEx(
+        "total_client_groups",
+        1800,
+        JSON.stringify(groups_)
+      );
     }
 
     const recent_groups: string = await redisClient.get("recent-groups");
@@ -413,7 +417,7 @@ export const getGroups = async (
   next: NextFunction
 ) => {
   try {
-    const groups: string = await redisClient.get(`groups`);
+    const groups: string = await redisClient.get(`total_client_groups`);
 
     if (groups) {
       const groups_: Array<Group2> = JSON.parse(groups);
@@ -433,7 +437,11 @@ export const getGroups = async (
         },
       });
 
-      await redisClient.setEx("groups", 1800, JSON.stringify(groups));
+      await redisClient.setEx(
+        "total_client_groups",
+        1800,
+        JSON.stringify(groups)
+      );
 
       return res.status(200).json({ success: true, message: groups });
     }
@@ -481,7 +489,7 @@ export const joinGroups: RequestHandler = async (
       data: { groups: { connect: { id: group.id } } },
     });
 
-    const groups: string = await redisClient.get("groups");
+    const groups: string = await redisClient.get("total_client_groups");
 
     if (groups) {
       const groups_: Array<Group2> = JSON.parse(groups);
@@ -496,7 +504,11 @@ export const joinGroups: RequestHandler = async (
         groups_[index] = group_element;
       }
 
-      await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+      await redisClient.setEx(
+        "total_client_groups",
+        1800,
+        JSON.stringify(groups_)
+      );
     }
 
     const recent_groups: string = await redisClient.get("recent-groups");
@@ -887,7 +899,7 @@ export const leavethegroup = async (
       data: { groups: { disconnect: { id: group.id } } },
     });
 
-    const groups: string = await redisClient.get("groups");
+    const groups: string = await redisClient.get("total_client_groups");
 
     if (groups) {
       const groups_: Array<Group2> = JSON.parse(groups);
@@ -902,7 +914,11 @@ export const leavethegroup = async (
         groups_[index] = group_element;
       }
 
-      await redisClient.setEx("groups", 1800, JSON.stringify(groups_));
+      await redisClient.setEx(
+        "total_client_groups",
+        1800,
+        JSON.stringify(groups_)
+      );
     }
 
     const recent_groups: string = await redisClient.get("recent-groups");
