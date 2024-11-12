@@ -12,11 +12,11 @@ const getSignedToken: Function = async (
     process.env.JWT_SECRET_REFRESH,
     { expiresIn: "10d" }
   );
-  const tokens = { token: token };
   const user = await prisma.user.update({
     where: { username: username },
     data: { token: token } as { token: string },
   });
+  const tokens = { token: token, isbioDataUpdated: user.isbioDataUpdated };
   return tokens;
 };
 
@@ -26,7 +26,11 @@ export const sendToken = async (
   res: Response
 ): Promise<Response> => {
   const token = await getSignedToken(username);
-  return res.status(statusCode).json({ success: true, token: token.token });
+  return res.status(statusCode).json({
+    success: true,
+    token: token.token,
+    isbioDataUpdated: token.isbioDataUpdated,
+  });
 };
 
 module.exports = { sendToken };

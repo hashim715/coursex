@@ -27,6 +27,7 @@ export type User = {
   groups: Group[] | null;
   clubs: string;
   theme_color: string;
+  bio: string;
 };
 
 export type User2 = {
@@ -54,6 +55,7 @@ export type User2 = {
   resetPasswordVerification: boolean;
   clubs: string;
   theme_color: string;
+  bio: string;
 };
 
 export type Group = {
@@ -65,6 +67,23 @@ export type Group = {
   description: string;
   createdAt: Datetime;
   updatedAt: Datetime;
+  type: string;
+  theme: string | null;
+  _count: counts | null;
+  recent_message: string | null;
+};
+
+export type DefaultGroupType = {
+  id: number;
+  name: string;
+  image: string;
+  admins: number[];
+  college: string;
+  description: string;
+  createdAt: Datetime;
+  updatedAt: Datetime;
+  type: string;
+  theme: string | null;
 };
 
 type counts = {

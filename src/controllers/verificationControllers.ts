@@ -112,16 +112,16 @@ export const verifyForgotPasswordEmail: RequestHandler = async (
 
     const verification_token = crypto
       .createHash("sha256")
-      .update(code + user.verification_secret)
+      .update(code + user.forgotpassword_secret)
       .digest("hex");
 
-    if (user.verification_token !== verification_token) {
+    if (user.forgotpassword_token !== verification_token) {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
     }
 
-    if (Date.now() > new Date(user.verification_token_expiry).getTime()) {
+    if (Date.now() > new Date(user.forgotpassword_token_expiry).getTime()) {
       return res.status(400).json({
         success: false,
         message: "Your verification token is expired not valid",
@@ -140,6 +140,69 @@ export const verifyForgotPasswordEmail: RequestHandler = async (
       .json({ success: true, message: "Email verified successfully" });
   } catch (err) {
     console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const sendVerificationCodeforForgotPassword: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email }: { email: string } = req.body;
+
+    if (!email.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address that you provided is not valid",
+      });
+    }
+
+    const user = await prisma.user.findFirst({ where: { email: email } });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User with given email does not exists",
+      });
+    }
+
+    const { verificationToken, token, code } = generateVerificationCode();
+
+    const currentDate = new Date();
+    const next24Hours = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { email: email },
+      data: {
+        forgotpassword_secret: token,
+        forgotpassword_token: verificationToken,
+        forgotpassword_token_expiry: next24Hours.toISOString(),
+      },
+    });
+
+    await client.sendEmail({
+      From: process.env.EMAIL_FROM,
+      To: email,
+      Subject: "Verify your Email",
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>http://192.168.100.16:5000/api/user/redirectUserToVerification/${email}/forgot</a></p>`,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Verification Email sent successfully" });
+  } catch (err) {
     if (!res.headersSent) {
       return res
         .status(500)
@@ -196,7 +259,7 @@ export const sendVerifiCationCode: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      TextBody: `<h1>Your verification code is: ${code}</h1>`,
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>http://192.168.100.16:5000/api/user/redirectUserToVerification/${email}/verify</a></p>`,
     });
 
     return res
@@ -263,9 +326,9 @@ export const forgotPassword: RequestHandler = async (
       data: {
         password: password,
         resetPasswordVerification: false,
-        verification_token: null,
-        verification_secret: null,
-        verification_token_expiry: null,
+        forgotpassword_token: null,
+        forgotpassword_secret: null,
+        forgotpassword_token_expiry: null,
       },
     });
 

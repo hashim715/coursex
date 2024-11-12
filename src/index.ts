@@ -17,6 +17,8 @@ import bodyParser from "body-parser";
 import path from "path";
 import { createTopic } from "./config/kafka";
 import timeout from "connect-timeout";
+import cron from "node-cron";
+import { prisma } from "./config/postgres";
 
 dotenv.config();
 
@@ -30,7 +32,7 @@ app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(timeout("5s"));
+app.use(timeout("25s"));
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
@@ -84,6 +86,37 @@ createTopic();
 
 startMessageConsumer();
 
+const scheduleTask = async () => {
+  // cron.schedule("0 * * * *", async () => {
+  //   // Run every hour
+  //   const expirationTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+  //   await prisma.user.deleteMany({
+  //     where: {
+  //       isUserVerified: false,
+  //       createdAt: {
+  //         lt: expirationTime,
+  //       },
+  //     },
+  //   });
+  //   console.log("Account verification task scheduled");
+  // });
+
+  cron.schedule("*/15 * * * *", async () => {
+    // Run every 15 minutes
+    const expirationTime = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+    await prisma.user.deleteMany({
+      where: {
+        isUserVerified: false,
+        createdAt: {
+          lt: expirationTime,
+        },
+      },
+    });
+    // console.log("Account verification task scheduled");
+  });
+  console.log("Scheduler is set");
+};
+
 const start = async (): Promise<void> => {
   try {
     server.listen(PORT, (): void => {
@@ -91,6 +124,7 @@ const start = async (): Promise<void> => {
     });
     await connectDB();
     await redisClient.flushDb();
+    await scheduleTask();
   } catch (err) {
     console.log(err);
     await redisClient.flushDb();

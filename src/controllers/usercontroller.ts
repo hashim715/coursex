@@ -15,7 +15,17 @@ import { shuffleItems } from "../utils/shuffleItem";
 import { mergeItems } from "../utils/mergeItems";
 import QRCode from "qrcode";
 import { redisClient } from "../config/redisClient";
-import { Group, Group2, Event, Album, User2 } from "../utils/dataTypes";
+import {
+  Group,
+  Group2,
+  Event,
+  Album,
+  User2,
+  DefaultGroupType,
+} from "../utils/dataTypes";
+import { Message } from "../models/MessageSchema";
+import { generateVerificationCode } from "../utils/getVerificationCode";
+import { client } from "../utils/sendEmail";
 
 export const getTokenFunc = (req: Request) => {
   let token: string;
@@ -105,6 +115,28 @@ export const register: RequestHandler = async (
       },
     });
 
+    const { verificationToken, token, code } = generateVerificationCode();
+
+    const currentDate = new Date();
+    // const next24Hours = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000); // 30 minutes from currentDate
+
+    await prisma.user.update({
+      where: { email: email },
+      data: {
+        verification_secret: token,
+        verification_token: verificationToken,
+        verification_token_expiry: next30Minutes.toISOString(),
+      },
+    });
+
+    await client.sendEmail({
+      From: process.env.EMAIL_FROM,
+      To: email,
+      Subject: "Verify your Email",
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>http://192.168.100.16:5000/api/user/redirectUserToVerification/${email}/verify</a></p>`,
+    });
+
     return res
       .status(200)
       .json({ success: true, message: "User registered successfully" });
@@ -139,9 +171,10 @@ export const login: RequestHandler = async (
     }
 
     if (!user.isUserVerified) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Your account is not verified" });
+      return res.status(400).json({
+        success: false,
+        message: "Your account is not verified",
+      });
     }
 
     const isMatch = await matchPassword(password, user.password);
@@ -156,7 +189,27 @@ export const login: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const redirectUserToVerification: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, screen } = req.params;
+
+    const url = `exp://192.168.100.16:8081/--/verification/${email}/${screen}`;
+
+    return res.status(200).redirect(url);
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -167,9 +220,14 @@ export const createGroup: RequestHandler = async (
   next: NextFunction
 ): Promise<Response> => {
   try {
-    const { name, college, description, image } = req.body;
+    const { name, college, description, image, type, theme } = req.body;
 
-    if (!name.trim() || !college.trim() || !description.trim()) {
+    if (
+      !name.trim() ||
+      !college.trim() ||
+      !description.trim() ||
+      !type.trim()
+    ) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -196,6 +254,7 @@ export const createGroup: RequestHandler = async (
           description: description,
           admins: [user.id],
           image: image,
+          type: type,
         },
       });
     } else {
@@ -205,6 +264,8 @@ export const createGroup: RequestHandler = async (
           college: college,
           description: description,
           admins: [user.id],
+          type: type,
+          theme: theme,
         },
       });
     }
@@ -238,7 +299,7 @@ export const createGroup: RequestHandler = async (
       _count: { users: group_members.users.length },
     };
 
-    if (groups) {
+    if (groups && group.type === "non-course") {
       const groups_: Array<Group2> = JSON.parse(groups);
 
       groups_.unshift(group_data);
@@ -252,7 +313,7 @@ export const createGroup: RequestHandler = async (
 
     const recent_groups: string = await redisClient.get("recent-groups");
 
-    if (recent_groups) {
+    if (recent_groups && group.type === "non-course") {
       const groups_: Array<Group2> = JSON.parse(recent_groups);
 
       groups_.unshift(group_data);
@@ -260,42 +321,50 @@ export const createGroup: RequestHandler = async (
       await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
-    const user_groups: string = await redisClient.get(
-      `${user.username}-groups`
-    );
+    let group_created = await prisma.group.findUnique({
+      where: { id: group.id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+          },
+        },
+      },
+    });
 
-    if (user_groups) {
-      const _groups: Array<Group> = JSON.parse(user_groups);
-
-      const group_data = {
-        id: group.id,
-        name: group.name,
-        image: group.image,
-        admins: group.admins,
-        college: group.college,
-        description: group.description,
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt,
+    if (group_created.type === "course") {
+      return res.status(200).json({
+        success: true,
+        message: "Group created successfully",
+        group: group_created,
+      });
+    } else {
+      const group_info = {
+        id: group_created.id,
+        name: group_created.name,
+        image: group_created.image,
+        admins: group_created.admins,
+        college: group_created.college,
+        description: group_created.description,
+        createdAt: group_created.createdAt,
+        updatedAt: group_created.updatedAt,
+        recent_message: "No messages",
+        theme: group_created.theme,
+        type: group_created.type,
+        sender: null as string | null,
       };
-
-      _groups.unshift(group_data);
-
-      await redisClient.setEx(
-        `${user.username}-groups`,
-        1800,
-        JSON.stringify(_groups)
-      );
+      return res.status(200).json({
+        success: true,
+        message: "Group created successfully",
+        group: group_info,
+      });
     }
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Group created successfully" });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -318,31 +387,96 @@ export const getGroupsByUser: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
-    const groups: string = await redisClient.get(`${user.name}-groups`);
+    const groups = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+          where: { type: "course" },
+          include: {
+            _count: {
+              select: {
+                users: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    if (groups) {
-      const groups_: Array<Group> = JSON.parse(groups);
-
-      return res.status(200).json({ success: true, message: groups_ });
-    } else {
-      const groups = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { groups: { orderBy: { createdAt: "desc" } } },
-      });
-
-      await redisClient.setEx(
-        `${user.username}-groups`,
-        1800,
-        JSON.stringify(groups.groups)
-      );
-
-      return res.status(200).json({ success: true, message: groups.groups });
-    }
+    return res.status(200).json({ success: true, message: groups.groups });
   } catch (err) {
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getNonCourseGroupsByUser: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const groups = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+          where: { type: "non-course" },
+        },
+      },
+    });
+
+    const groups_: Array<DefaultGroupType> = groups.groups;
+
+    const filteredGroups: Array<any> = [];
+
+    for (let group of groups_) {
+      const messages = await Message.find({
+        groupId: group.id,
+      })
+        .sort({ timeStamp: -1 })
+        .limit(10);
+
+      const group_data = {
+        id: group.id,
+        name: group.name,
+        image: group.image,
+        admins: group.admins,
+        college: group.college,
+        description: group.description,
+        createdAt: group.createdAt,
+        updatedAt: group.updatedAt,
+        recent_message:
+          messages.length > 0 ? messages[0].message : "No messages",
+        theme: group.theme,
+        type: group.type,
+        sender: messages.length > 0 ? messages[0].sender : null,
+      };
+      filteredGroups.push(group_data);
+    }
+
+    return res.status(200).json({ success: true, message: filteredGroups });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -377,7 +511,7 @@ export const getGroupDetails: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -406,7 +540,7 @@ export const getGroupsByColleges: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -427,6 +561,9 @@ export const getGroups = async (
       const groups = await prisma.group.findMany({
         orderBy: {
           createdAt: "desc",
+        },
+        where: {
+          type: "non-course",
         },
         include: {
           _count: {
@@ -449,7 +586,7 @@ export const getGroups = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -491,7 +628,7 @@ export const joinGroups: RequestHandler = async (
 
     const groups: string = await redisClient.get("total_client_groups");
 
-    if (groups) {
+    if (groups && group.type === "non-course") {
       const groups_: Array<Group2> = JSON.parse(groups);
 
       const group_element: Group2 = groups_.find(
@@ -513,7 +650,7 @@ export const joinGroups: RequestHandler = async (
 
     const recent_groups: string = await redisClient.get("recent-groups");
 
-    if (recent_groups) {
+    if (recent_groups && group.type == "non-course") {
       const groups_: Array<Group2> = JSON.parse(recent_groups);
 
       const group_element: Group2 = groups_.find(
@@ -529,33 +666,6 @@ export const joinGroups: RequestHandler = async (
       await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
-    const user_groups: string = await redisClient.get(
-      `${user.username}-groups`
-    );
-
-    if (user_groups) {
-      const _groups: Array<Group> = JSON.parse(user_groups);
-
-      const group_data = {
-        id: group.id,
-        name: group.name,
-        image: group.image,
-        admins: group.admins,
-        college: group.college,
-        description: group.description,
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt,
-      };
-
-      _groups.unshift(group_data);
-
-      await redisClient.setEx(
-        `${user.username}-groups`,
-        1800,
-        JSON.stringify(_groups)
-      );
-    }
-
     return res
       .status(200)
       .json({ success: true, message: "User joined successfully" });
@@ -563,7 +673,7 @@ export const joinGroups: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -614,7 +724,7 @@ export const isUserintheGroup: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -656,7 +766,7 @@ export const getUserInfo: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -673,26 +783,16 @@ export const editProfileInfo: RequestHandler = async (
       courses,
       year,
       major,
-      fraternity,
-      relationship_status,
-      theme,
+      chatbotName,
       profile_image,
-      cover_image,
-      theme_color,
-      clubs,
     }: {
       name: string;
       college: string;
       courses: string;
       year: string;
       major: string;
-      fraternity: string;
-      relationship_status: string;
-      theme: string;
+      chatbotName: string;
       profile_image: string;
-      cover_image: string;
-      theme_color: string;
-      clubs: string;
     } = req.body;
 
     if (
@@ -701,13 +801,8 @@ export const editProfileInfo: RequestHandler = async (
       !courses.trim() ||
       !year.trim() ||
       !major.trim() ||
-      !fraternity.trim() ||
-      !relationship_status.trim() ||
-      !theme.trim() ||
-      !profile_image.trim() ||
-      !cover_image.trim() ||
-      !theme_color.trim() ||
-      !clubs.trim()
+      !chatbotName.trim() ||
+      !profile_image.trim()
     ) {
       return res
         .status(400)
@@ -734,13 +829,9 @@ export const editProfileInfo: RequestHandler = async (
         college: college,
         year: year,
         major: major,
-        relationship_status: relationship_status,
-        theme: theme,
         image: profile_image,
-        cover_image: cover_image,
-        fraternity: fraternity,
-        theme_color: theme_color,
-        clubs: clubs,
+        chatbotName: chatbotName,
+        isbioDataUpdated: true,
       },
     });
 
@@ -752,7 +843,7 @@ export const editProfileInfo: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -772,7 +863,7 @@ export const getGroupJoinUrl: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -818,7 +909,7 @@ export const generateQrCode = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -859,7 +950,7 @@ export const getUserInfoById = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -901,7 +992,7 @@ export const leavethegroup = async (
 
     const groups: string = await redisClient.get("total_client_groups");
 
-    if (groups) {
+    if (groups && group.type === "non-course") {
       const groups_: Array<Group2> = JSON.parse(groups);
 
       const group_element: Group2 = groups_.find(
@@ -923,7 +1014,7 @@ export const leavethegroup = async (
 
     const recent_groups: string = await redisClient.get("recent-groups");
 
-    if (recent_groups) {
+    if (recent_groups && group.type === "non-course") {
       const groups_: Array<Group2> = JSON.parse(recent_groups);
 
       const group_element: Group2 = groups_.find(
@@ -939,22 +1030,6 @@ export const leavethegroup = async (
       await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
-    const user_groups: string = await redisClient.get(
-      `${user.username}-groups`
-    );
-
-    if (user_groups) {
-      let _groups: Array<Group> = JSON.parse(user_groups);
-
-      _groups = _groups.filter((element) => element.id !== group.id);
-
-      await redisClient.setEx(
-        `${user.username}-groups`,
-        1800,
-        JSON.stringify(_groups)
-      );
-    }
-
     return res
       .status(200)
       .json({ success: false, message: "You left the group" });
@@ -962,7 +1037,7 @@ export const leavethegroup = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -1078,7 +1153,7 @@ export const createEvent = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -1108,7 +1183,7 @@ export const getEvents = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -1138,7 +1213,7 @@ export const getEventDetails = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -1154,7 +1229,7 @@ export const testingController: RequestHandler = async (
     if (!res.headersSent) {
       return res
         .status(500)
-        .json({ success: false, message: "Server error occurred" });
+        .json({ success: false, message: "Something went wrong." });
     }
   }
 };
@@ -1518,6 +1593,7 @@ export const getRecentGroups: RequestHandler = async (
           createdAt: {
             gte: twentyFourHoursAgo,
           },
+          type: "non-course",
         },
         orderBy: {
           createdAt: "desc",
@@ -1720,6 +1796,208 @@ export const getMixedEventsAndAlbums: RequestHandler = async (
     const shuffledData: Array<Event | Album> = shuffleItems(mergedData);
 
     return res.status(200).json({ success: true, message: shuffledData });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const createFlashCards: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      name,
+      questions,
+      answers,
+    }: {
+      name: string;
+      questions: string[];
+      answers: string[];
+    } = req.body;
+
+    if (!name.trim() || questions.length <= 0 || answers.length <= 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please complete the form" });
+    }
+
+    const { group_id } = req.params;
+
+    const group = await prisma.group.findFirst({
+      where: { id: parseInt(group_id) },
+    });
+
+    if (!group) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Group not found" });
+    }
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    await prisma.flashCard.create({
+      data: {
+        name: name,
+        questions: questions,
+        answers: answers,
+        group_id: group.id,
+        creator: user.username,
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "FlashCard created successfully" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getFlashCards: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { group_id } = req.params;
+
+    const group = await prisma.group.findFirst({
+      where: { id: parseInt(group_id) },
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Group with the given id does not exists",
+      });
+    }
+
+    const flashcards = await prisma.flashCard.findMany({
+      where: { group_id: group.id },
+    });
+
+    return res.status(200).json({ success: true, message: flashcards });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getFlashCard: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { flashcard_id } = req.params;
+
+    const flashcard = await prisma.flashCard.findFirst({
+      where: { id: parseInt(flashcard_id) },
+    });
+
+    if (!flashcard) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Flashcard not found" });
+    }
+
+    return res.status(200).json({ success: true, message: flashcard });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const updateProfileDataOnSignUp: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      college,
+      courses,
+      year,
+      major,
+      profile_image,
+      chatbotName,
+      token,
+    }: {
+      college: string;
+      courses: string;
+      year: string;
+      major: string;
+      profile_image: string;
+      chatbotName: string;
+      token: string;
+    } = req.body;
+
+    if (
+      !college.trim() ||
+      !courses.trim() ||
+      !year.trim() ||
+      !major.trim() ||
+      !profile_image.trim() ||
+      !token.trim() ||
+      !chatbotName.trim()
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        courses: courses,
+        college: college,
+        year: year,
+        major: major,
+        image: profile_image,
+        chatbotName: chatbotName,
+        isbioDataUpdated: true,
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User profile updated successfully" });
   } catch (err) {
     if (!res.headersSent) {
       return res

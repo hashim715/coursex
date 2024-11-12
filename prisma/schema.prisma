@@ -22,25 +22,31 @@ model User {
   college String @default("University of Houston-Downtown")
   courses String @default("courses")
   year String @default("Freshmen")
-  image String @default("https://cdn1.iconfinder.com/data/icons/user-pics/512/user_add-512.png")
-  cover_image String @default("https://cdn1.iconfinder.com/data/icons/user-pics/512/user_add-512.png")
+  image String @default("https://assets.api.uizard.io/api/cdn/stream/72aa7c72-8bd6-4874-b4ad-36a00b6d5bf2.png")
+  cover_image String @default("https://assets.api.uizard.io/api/cdn/stream/72aa7c72-8bd6-4874-b4ad-36a00b6d5bf2.png")
   groups Group[]  @relation("UserGroups")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   token String?
   events Event[]
+  forgotpassword_token String?
+  forgotpassword_secret String?
+  forgotpassword_token_expiry String?
   verification_token String?
   verification_secret String?
   verification_token_expiry String?
   isUserVerified Boolean @default(false)
   resetPasswordVerification Boolean @default(false)
   albums Album[]
-  theme String @default("https://assets.api.uizard.io/api/cdn/stream/e16a6e9f-6b62-42cd-a233-9b3620639bd2.jpg")
+  theme String @default("https://w0.peakpx.com/wallpaper/469/175/HD-wallpaper-pitch-black-dark-phone-plain-solid-thumbnail.jpg")
   fraternity String @default("Sigma Alpha Epsilon")
   relationship_status String @default("Single")
   major String @default("Majors")
-  theme_color String @default("451204")
+  theme_color String @default("000000")
   clubs String @default("clubs")
+  bio String @default("This is my bio.")
+  isbioDataUpdated Boolean @default(false)
+  chatbotName String @default("Gamu")
 }
 
 model Group {
@@ -53,6 +59,9 @@ model Group {
   description String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  flashcards FlashCard[]
+  type String
+  theme String?
 }
 
 model Event {
@@ -93,4 +102,14 @@ model Job {
   schedule String
   department String
   college String
+}
+
+model FlashCard {
+  id Int @id @default(autoincrement())
+  name String
+  questions String[]
+  answers String[]
+  group_id Int
+  group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  creator String
 }

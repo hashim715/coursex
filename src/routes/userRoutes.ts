@@ -32,6 +32,12 @@ import {
   getEventsByUser,
   getRecentUsers,
   getMixedEventsAndAlbums,
+  createFlashCards,
+  getFlashCards,
+  getNonCourseGroupsByUser,
+  getFlashCard,
+  updateProfileDataOnSignUp,
+  redirectUserToVerification,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -61,6 +67,10 @@ userRouter
     testingController
   );
 userRouter.route("/getGroupsByUser").get(protect, getGroupsByUser);
+
+userRouter
+  .route("/getNonCourseGroupsByUser")
+  .get(protect, getNonCourseGroupsByUser);
 
 userRouter.route("/getGroupDetails/:group_id").get(protect, getGroupDetails);
 
@@ -117,3 +127,15 @@ userRouter.route("/getRecentUsers").get(protect, getRecentUsers);
 userRouter
   .route("/getMixedEventsAndAlbums")
   .get(protect, getMixedEventsAndAlbums);
+
+userRouter.route("/createFlashCard/:group_id").post(protect, createFlashCards);
+
+userRouter.route("/getFlashcards/:group_id").get(protect, getFlashCards);
+
+userRouter.route("/getFlashCard/:flashcard_id").get(protect, getFlashCard);
+
+userRouter.route("/updateUserProfileOnSignUp").post(updateProfileDataOnSignUp);
+
+userRouter
+  .route("/redirectUserToVerification/:email/:screen")
+  .get(redirectUserToVerification);
