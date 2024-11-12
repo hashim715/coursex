@@ -666,9 +666,51 @@ export const joinGroups: RequestHandler = async (
       await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
     }
 
-    return res
-      .status(200)
-      .json({ success: true, message: "User joined successfully" });
+    let group_joined = await prisma.group.findUnique({
+      where: { id: group.id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+          },
+        },
+      },
+    });
+
+    if (group_joined.type === "course") {
+      return res.status(200).json({
+        success: true,
+        message: "Group joined successfully",
+        group: group_joined,
+      });
+    } else {
+      const messages = await Message.find({
+        groupId: group_joined.id,
+      })
+        .sort({ timeStamp: -1 })
+        .limit(10);
+
+      const group_info = {
+        id: group_joined.id,
+        name: group_joined.name,
+        image: group_joined.image,
+        admins: group_joined.admins,
+        college: group_joined.college,
+        description: group_joined.description,
+        createdAt: group_joined.createdAt,
+        updatedAt: group_joined.updatedAt,
+        recent_message:
+          messages.length > 0 ? messages[0].message : "No messages",
+        theme: group_joined.theme,
+        type: group_joined.type,
+        sender: messages.length > 0 ? messages[0].sender : null,
+      };
+      return res.status(200).json({
+        success: true,
+        message: "Group joined successfully",
+        group: group_info,
+      });
+    }
   } catch (err) {
     if (!res.headersSent) {
       return res
