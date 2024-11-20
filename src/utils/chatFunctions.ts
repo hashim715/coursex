@@ -97,6 +97,7 @@ export const RemoveFromGroupRoomMap = async (
                 .get(groupID)
                 .get(username)
                 .socket_ids.delete(socket_id);
+              console.log(`Chat Room left ${username}`);
               if (
                 usersockets.get(groupID).get(username).socket_ids.size === 0
               ) {

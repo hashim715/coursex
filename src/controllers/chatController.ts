@@ -19,6 +19,7 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { Message } from "../models/MessageSchema";
 import { getTokenFunc } from "./usercontroller";
 import jwt_decode from "jwt-decode";
+import { getStreamingChatbotResponse } from "./knowledgebaseController";
 
 dotenv.config();
 
@@ -45,19 +46,39 @@ export const chatController = async (
     let leaveRoomTriggered = false;
 
     socket.on("join-room", async (data) => {
-      socket.join(data.groupID);
-      await addSocketsToRoom(data.groupID, data.username, socket.id);
-      console.log(`Room joined by ${data.username}`);
+      if (data.groupID && data.username) {
+        socket.join(data.groupID);
+        await addSocketsToRoom(data.groupID, data.username, socket.id);
+        console.log(`Room joined by ${data.username}`);
+      }
     });
     socket.on("add-user", async (data) => {
-      await addActiveUsers(data.username, socket.id);
-      console.log(`Added User ${data.username}`);
+      if (data.username) {
+        await addActiveUsers(data.username, socket.id);
+        console.log(`Added User ${data.username}`);
+      }
     });
     socket.on("leave-room", async (data) => {
       leaveRoomTriggered = true;
-      socket.leave(data.groupID);
-      await RemoveFromGroupRoomMap(data.groupID, data.username, socket.id);
-      console.log(`Room left ${data.username}`);
+      if (data.groupID && data.username) {
+        socket.leave(data.groupID);
+        await RemoveFromGroupRoomMap(data.groupID, data.username, socket.id);
+      }
+      leaveRoomTriggered = false;
+    });
+    socket.on("join-chatbot-room", async (data) => {
+      if (data.groupID && data.username) {
+        socket.join(data.groupID);
+        await addSocketsToRoom(data.groupID, data.username, socket.id);
+        console.log(`Chatbot Room joined by ${data.username}`);
+      }
+    });
+    socket.on("leave-chatbot-room", async (data) => {
+      leaveRoomTriggered = true;
+      if (data.groupID && data.username) {
+        socket.leave(data.groupID);
+        await RemoveFromGroupRoomMap(data.groupID, data.username, socket.id);
+      }
       leaveRoomTriggered = false;
     });
     socket.on("user-disconnecting", async (data) => {
@@ -65,6 +86,48 @@ export const chatController = async (
       await RemoveFromActiveUsersMap(data.username, socket.id);
       console.log(`Removed User ${data.username}`);
       userDisconnectingTriggered = false;
+    });
+    socket.on("chatbot-message", async (msg): Promise<void> => {
+      const parsedMessage = {
+        message: msg.message,
+        groupID: msg.group_id,
+        sender: msg.sender,
+        id: socket.id,
+        timeStamp: msg.timeStamp,
+        type: msg.type,
+        message_id: msg.message_id,
+        assistant_name: msg.assistant_name,
+      };
+
+      io.to(parsedMessage.groupID).emit("chatbot-message", {
+        message: "Chatbot is typing...",
+        sender: parsedMessage.assistant_name,
+        id: socket.id,
+        timeStamp: parsedMessage.timeStamp,
+        type: parsedMessage.type,
+        message_id: parsedMessage.message_id + 1,
+        isFinal: false,
+        assistant_name: parsedMessage.assistant_name,
+      });
+
+      await getStreamingChatbotResponse(
+        parsedMessage.message,
+        "none",
+        "none",
+        parsedMessage.assistant_name,
+        (chunk: string, isFinal: Boolean) => {
+          io.to(parsedMessage.groupID).emit("chatbot-message", {
+            message: chunk,
+            sender: parsedMessage.assistant_name,
+            id: socket.id,
+            timeStamp: parsedMessage.timeStamp,
+            type: parsedMessage.type,
+            message_id: parsedMessage.message_id + 1,
+            isFinal: isFinal,
+            assistant_name: parsedMessage.assistant_name,
+          });
+        }
+      );
     });
     socket.on("message", async (msg): Promise<void> => {
       const parsedMessage = {

@@ -11,6 +11,7 @@ import { tokenRouter } from "./routes/tokenRoutes";
 import { chatRouter } from "./routes/chatRoutes";
 import { timeOutRouter } from "./routes/timeOutRoutes";
 import { verificationRouter } from "./routes/verificationRoutes";
+import { knowledgeBaseRouter } from "./routes/knowledgeBaseRoutes";
 import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
@@ -32,7 +33,7 @@ app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(timeout("25s"));
+app.use(timeout("40s"));
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
@@ -62,6 +63,8 @@ app.use("/api/chats", chatRouter);
 app.use("/api/timeOut", timeOutRouter);
 
 app.use("/api/verify", verificationRouter);
+
+app.use("/api/knowledgeBase", knowledgeBaseRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {

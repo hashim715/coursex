@@ -38,6 +38,7 @@ import {
   getFlashCard,
   updateProfileDataOnSignUp,
   redirectUserToVerification,
+  getUserAssistantName,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -139,3 +140,5 @@ userRouter.route("/updateUserProfileOnSignUp").post(updateProfileDataOnSignUp);
 userRouter
   .route("/redirectUserToVerification/:email/:screen")
   .get(redirectUserToVerification);
+
+userRouter.route("/getUserAssistantName").get(protect, getUserAssistantName);

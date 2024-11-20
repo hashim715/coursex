@@ -26,6 +26,7 @@ import {
 import { Message } from "../models/MessageSchema";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { client } from "../utils/sendEmail";
+import { createAssistant } from "../controllers/knowledgebaseController";
 
 export const getTokenFunc = (req: Request) => {
   let token: string;
@@ -794,15 +795,55 @@ export const getUserInfo: RequestHandler = async (
       select: { groups: true },
     });
 
-    const albums = await prisma.album.findMany({ where: { user_id: user.id } });
-
     const totalGroups = groups.groups.length;
 
     return res.status(200).json({
       success: true,
       message: user,
       totalGroups: totalGroups,
-      albums: albums,
+    });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getUserAssistantName: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const assistant = await prisma.assistant.findFirst({
+      where: { user_id: user.id },
+    });
+
+    if (!assistant) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No any assistant found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: assistant.name,
+      profile: user.image,
+      assistantId: assistant.id,
     });
   } catch (err) {
     if (!res.headersSent) {
@@ -825,7 +866,6 @@ export const editProfileInfo: RequestHandler = async (
       courses,
       year,
       major,
-      chatbotName,
       profile_image,
     }: {
       name: string;
@@ -833,7 +873,6 @@ export const editProfileInfo: RequestHandler = async (
       courses: string;
       year: string;
       major: string;
-      chatbotName: string;
       profile_image: string;
     } = req.body;
 
@@ -843,7 +882,6 @@ export const editProfileInfo: RequestHandler = async (
       !courses.trim() ||
       !year.trim() ||
       !major.trim() ||
-      !chatbotName.trim() ||
       !profile_image.trim()
     ) {
       return res
@@ -872,7 +910,6 @@ export const editProfileInfo: RequestHandler = async (
         year: year,
         major: major,
         image: profile_image,
-        chatbotName: chatbotName,
         isbioDataUpdated: true,
       },
     });
@@ -1988,7 +2025,8 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
       year,
       major,
       profile_image,
-      chatbotName,
+      assistantName,
+      assistantInstruction,
       token,
     }: {
       college: string;
@@ -1996,7 +2034,8 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
       year: string;
       major: string;
       profile_image: string;
-      chatbotName: string;
+      assistantName: string;
+      assistantInstruction: string;
       token: string;
     } = req.body;
 
@@ -2007,7 +2046,8 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
       !major.trim() ||
       !profile_image.trim() ||
       !token.trim() ||
-      !chatbotName.trim()
+      !assistantName.trim() ||
+      !assistantInstruction.trim()
     ) {
       return res
         .status(400)
@@ -2024,6 +2064,26 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
+    const assistantData = await createAssistant(
+      assistantName,
+      assistantInstruction
+    );
+
+    if (assistantData.error) {
+      return res.status(400).json({
+        success: false,
+        message: assistantData.message,
+      });
+    }
+
+    await prisma.assistant.create({
+      data: {
+        name: assistantData.name,
+        instructions: assistantData.instructions,
+        user_id: user.id,
+      },
+    });
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -2032,7 +2092,6 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
         year: year,
         major: major,
         image: profile_image,
-        chatbotName: chatbotName,
         isbioDataUpdated: true,
       },
     });

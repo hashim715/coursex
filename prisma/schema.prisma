@@ -46,7 +46,7 @@ model User {
   clubs String @default("clubs")
   bio String @default("This is my bio.")
   isbioDataUpdated Boolean @default(false)
-  chatbotName String @default("Gamu")
+  assistant Assistant[]
 }
 
 model Group {
@@ -62,6 +62,7 @@ model Group {
   flashcards FlashCard[]
   type String
   theme String?
+  assistant Assistant[]
 }
 
 model Event {
@@ -112,4 +113,30 @@ model FlashCard {
   group_id Int
   group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
   creator String
+}
+
+model Assistant {
+  id Int @id @default(autoincrement())
+  name String
+  instructions String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  documents AssistantDocuments[]
+  user_id Int?
+  user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  group_id Int?
+  group Group? @relation(fields: [group_id], references: [id], onDelete: Cascade)
+}
+
+model AssistantDocuments {
+  id Int @id @default(autoincrement())
+  name String
+  assistant_id Int
+  assistant Assistant @relation(fields: [assistant_id], references: [id], onDelete: Cascade)
+  document_id String
+  status String
+  percent_done String
+  signed_url String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
