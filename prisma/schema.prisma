@@ -23,12 +23,10 @@ model User {
   courses String @default("courses")
   year String @default("Freshmen")
   image String @default("https://assets.api.uizard.io/api/cdn/stream/72aa7c72-8bd6-4874-b4ad-36a00b6d5bf2.png")
-  cover_image String @default("https://assets.api.uizard.io/api/cdn/stream/72aa7c72-8bd6-4874-b4ad-36a00b6d5bf2.png")
   groups Group[]  @relation("UserGroups")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   token String?
-  events Event[]
   forgotpassword_token String?
   forgotpassword_secret String?
   forgotpassword_token_expiry String?
@@ -37,14 +35,7 @@ model User {
   verification_token_expiry String?
   isUserVerified Boolean @default(false)
   resetPasswordVerification Boolean @default(false)
-  albums Album[]
-  theme String @default("https://w0.peakpx.com/wallpaper/469/175/HD-wallpaper-pitch-black-dark-phone-plain-solid-thumbnail.jpg")
-  fraternity String @default("Sigma Alpha Epsilon")
-  relationship_status String @default("Single")
   major String @default("Majors")
-  theme_color String @default("000000")
-  clubs String @default("clubs")
-  bio String @default("This is my bio.")
   isbioDataUpdated Boolean @default(false)
   assistant Assistant[]
 }
@@ -67,8 +58,6 @@ model Group {
 
 model Event {
   id Int @id @default(autoincrement())
-  adminId Int
-  user User @relation(fields: [adminId],references: [id],onDelete: Cascade)
   name String
   location String
   description String
@@ -81,8 +70,6 @@ model Event {
 
 model Album {
   id Int @id @default(autoincrement())
-  user_id Int
-  user User @relation(fields: [user_id],references: [id], onDelete: Cascade)
   name String
   description String
   theme_name String

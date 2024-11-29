@@ -5,24 +5,11 @@ import { sendToken } from "../utils/sendToken";
 import { validateEmail } from "../utils/checkvalidemail";
 import { matchPassword } from "../utils/matchPassword";
 import jwt_decode from "jwt-decode";
-import { clearfiles } from "../utils/clearFiles";
-import path from "path";
-import { renameSync } from "fs";
 import fs from "fs";
 import { s3 } from "../config/aws_s3";
-import { deleteImageByUrl } from "../utils/deleteimagefroms3";
-import { shuffleItems } from "../utils/shuffleItem";
-import { mergeItems } from "../utils/mergeItems";
 import QRCode from "qrcode";
 import { redisClient } from "../config/redisClient";
-import {
-  Group,
-  Group2,
-  Event,
-  Album,
-  User2,
-  DefaultGroupType,
-} from "../utils/dataTypes";
+import { Group2, User2, DefaultGroupType } from "../utils/dataTypes";
 import { Message } from "../models/MessageSchema";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { client } from "../utils/sendEmail";
@@ -221,13 +208,24 @@ export const createGroup: RequestHandler = async (
   next: NextFunction
 ): Promise<Response> => {
   try {
-    const { name, college, description, image, type, theme } = req.body;
+    const {
+      name,
+      college,
+      description,
+      image,
+      type,
+      theme,
+      assistantName,
+      assistantInstruction,
+    } = req.body;
 
     if (
       !name.trim() ||
       !college.trim() ||
       !description.trim() ||
-      !type.trim()
+      !type.trim() ||
+      !assistantName.trim() ||
+      !assistantInstruction.trim()
     ) {
       return res
         .status(400)
@@ -244,6 +242,18 @@ export const createGroup: RequestHandler = async (
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
+    }
+
+    const assistantData = await createAssistant(
+      assistantName,
+      assistantInstruction
+    );
+
+    if (assistantData.error) {
+      return res.status(400).json({
+        success: false,
+        message: assistantData.message,
+      });
     }
 
     let group;
@@ -270,6 +280,14 @@ export const createGroup: RequestHandler = async (
         },
       });
     }
+
+    await prisma.assistant.create({
+      data: {
+        name: assistantData.name,
+        instructions: assistantData.instructions,
+        group_id: group.id,
+      },
+    });
 
     await prisma.user.update({
       where: { id: user.id },
@@ -854,6 +872,50 @@ export const getUserAssistantName: RequestHandler = async (
   }
 };
 
+export const getGroupAssistantName: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { group_id } = req.params;
+
+    const group = await prisma.group.findUnique({
+      where: { id: parseInt(group_id) },
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Group with this id does not exists",
+      });
+    }
+
+    const assistant = await prisma.assistant.findFirst({
+      where: { group_id: group.id },
+    });
+
+    if (!assistant) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No any assistant found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: assistant.name,
+      profile: group.image,
+      assistantId: assistant.id,
+    });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
 export const editProfileInfo: RequestHandler = async (
   req: Request,
   res: Response,
@@ -1014,8 +1076,6 @@ export const getUserInfoById = async (
       select: { groups: true },
     });
 
-    const albums = await prisma.album.findMany({ where: { user_id: user.id } });
-
     const totalGroups = groups.groups.length;
 
     return res.status(200).json({
@@ -1023,7 +1083,6 @@ export const getUserInfoById = async (
       message: user,
       groups: groups,
       totalGroups: totalGroups,
-      albums: albums,
     });
   } catch (err) {
     if (!res.headersSent) {
@@ -1121,182 +1180,6 @@ export const leavethegroup = async (
   }
 };
 
-export const createEvent = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      name,
-      location,
-      description,
-      startTime,
-      endTime,
-      image,
-    }: {
-      name: string;
-      location: string;
-      description: string;
-      startTime: string;
-      endTime: string;
-      image: string;
-    } = req.body;
-
-    if (
-      !name.trim() ||
-      !location.trim() ||
-      !description.trim() ||
-      !startTime.trim() ||
-      !endTime.trim()
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Please fill out the form correctly",
-      });
-    }
-
-    const token = getTokenFunc(req);
-
-    const { username }: { username: string } = jwt_decode(token);
-
-    const user = await prisma.user.findFirst({ where: { username: username } });
-
-    let event;
-
-    if (image) {
-      event = await prisma.event.create({
-        data: {
-          name: name,
-          adminId: user.id,
-          location: location,
-          description: description,
-          startTime: startTime,
-          endTime: endTime,
-          image: image,
-        },
-      });
-    } else {
-      event = await prisma.event.create({
-        data: {
-          name: name,
-          adminId: user.id,
-          location: location,
-          description: description,
-          startTime: startTime,
-          endTime: endTime,
-        },
-      });
-    }
-
-    const events: string = await redisClient.get("events");
-    const recent_events: string = await redisClient.get("recent-events");
-    const user_events: string = await redisClient.get(`events-${username}`);
-
-    if (events) {
-      const events_: Array<Event> = JSON.parse(events);
-
-      events_.unshift(event);
-
-      await redisClient.setEx("events", 1800, JSON.stringify(events_));
-    }
-
-    if (recent_events) {
-      const recent_events_: Array<Event> = JSON.parse(recent_events);
-
-      recent_events_.unshift(event);
-
-      await redisClient.setEx(
-        "recent-events",
-        1800,
-        JSON.stringify(recent_events_)
-      );
-    }
-
-    if (user_events) {
-      const user_events_: Array<Event> = JSON.parse(user_events);
-
-      user_events_.unshift(event);
-
-      await redisClient.setEx(
-        `events-${username}`,
-        1800,
-        JSON.stringify(user_events_)
-      );
-    }
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Your event creatd successfully." });
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong." });
-    }
-  }
-};
-
-export const getEvents = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const events: string = await redisClient.get("events");
-
-    if (events) {
-      const events_: Array<Event> = JSON.parse(events);
-
-      return res.status(200).json({ success: true, message: events_ });
-    } else {
-      const events = await prisma.event.findMany({
-        orderBy: { createdAt: "desc" },
-      });
-
-      await redisClient.setEx("events", 1800, JSON.stringify(events));
-
-      return res.status(200).json({ success: true, message: events });
-    }
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong." });
-    }
-  }
-};
-
-export const getEventDetails = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { event_id } = req.params;
-
-    const event = await prisma.event.findUnique({
-      where: { id: parseInt(event_id) },
-    });
-
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: "Event with given id does not exists",
-      });
-    }
-
-    return res.status(200).json({ success: true, message: event });
-  } catch (err) {
-    console.log(err);
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong." });
-    }
-  }
-};
-
 export const testingController: RequestHandler = async (
   req: Request,
   res: Response,
@@ -1309,343 +1192,6 @@ export const testingController: RequestHandler = async (
       return res
         .status(500)
         .json({ success: false, message: "Something went wrong." });
-    }
-  }
-};
-
-export const createJobs: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      name,
-      description,
-      qualifications,
-      form,
-      link,
-      postingDate,
-      schedule,
-      department,
-      college,
-    }: {
-      name: string;
-      description: string;
-      qualifications: string;
-      form: string;
-      link: string;
-      postingDate: string;
-      schedule: string;
-      department: string;
-      college: string;
-    } = req.body;
-
-    if (
-      !name.trim() ||
-      !description.trim() ||
-      !qualifications.trim() ||
-      !form.trim() ||
-      !link.trim() ||
-      !postingDate.trim() ||
-      !schedule.trim() ||
-      !department.trim() ||
-      !college.trim()
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide valid inputs" });
-    }
-
-    await prisma.job.create({
-      data: {
-        name: name,
-        description: description,
-        qualifications: qualifications,
-        form: form,
-        link: link,
-        postingDate: postingDate,
-        schedule: schedule,
-        department: department,
-        college: college,
-      },
-    });
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Jobs created successfully" });
-  } catch (err) {
-    console.log(err);
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getJobs: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const jobs = await prisma.job.findMany({});
-
-    return res.status(200).json({ success: true, message: jobs });
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getJobDetails: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { job_id } = req.params;
-
-    const job = await prisma.job.findUnique({
-      where: { id: parseInt(job_id) },
-    });
-
-    if (!job) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Job with gived id does not exists" });
-    }
-
-    return res.status(200).json({ success: true, message: job });
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const createAlbum: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      theme_name,
-      album_title,
-      album_description,
-      album_cover,
-      album_photos,
-    }: {
-      theme_name: string;
-      album_title: string;
-      album_description: string;
-      album_cover: string;
-      album_photos: string;
-    } = req.body;
-
-    if (
-      !theme_name.trim() ||
-      !album_title.trim() ||
-      !album_description.trim() ||
-      !album_cover.trim() ||
-      !album_photos.trim()
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide valid inputs" });
-    }
-
-    const album_photos_: Array<string> = JSON.parse(album_photos);
-
-    const token = getTokenFunc(req);
-
-    const { username }: { username: string } = jwt_decode(token);
-
-    const user = await prisma.user.findFirst({ where: { username: username } });
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User does not exists" });
-    }
-
-    const album = await prisma.album.create({
-      data: {
-        name: album_title,
-        description: album_description,
-        theme_name: theme_name,
-        album_cover: album_cover,
-        album_photos: album_photos_,
-        user_id: user.id,
-      },
-    });
-
-    const albums: string = await redisClient.get(`albums-${user.username}`);
-    const recent_albums: string = await redisClient.get("recent-albums");
-
-    if (albums) {
-      const albums_: Array<Album> = JSON.parse(albums);
-
-      albums_.unshift(album);
-
-      await redisClient.setEx(
-        `albums-${user.username}`,
-        1800,
-        JSON.stringify(albums_)
-      );
-    }
-
-    if (recent_albums) {
-      const recent_albums_: Array<Album> = JSON.parse(recent_albums);
-
-      recent_albums_.unshift(album);
-
-      await redisClient.setEx(
-        "recent-albums",
-        1800,
-        JSON.stringify(recent_albums_)
-      );
-    }
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Your album created successfully" });
-  } catch (err) {
-    console.log(err);
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getAlbumns: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const token = getTokenFunc(req);
-
-    const { username }: { username: string } = jwt_decode(token);
-
-    const user = await prisma.user.findFirst({ where: { username: username } });
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User does not exists" });
-    }
-
-    const albums: string = await redisClient.get(`albums-${user.username}`);
-
-    if (albums) {
-      const albums_: Array<Album> = JSON.parse(albums);
-
-      return res.status(200).json({ success: true, message: albums_ });
-    } else {
-      const albums = await prisma.album.findMany({
-        where: { user_id: user.id },
-        orderBy: { createdAt: "desc" },
-      });
-
-      await redisClient.setEx(
-        `albums-${user.username}`,
-        1800,
-        JSON.stringify(albums)
-      );
-
-      return res.status(200).json({ success: true, message: albums });
-    }
-  } catch (err) {
-    console.log(err);
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getSingleAlbum: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { album_id } = req.params;
-
-    const album_id_ = parseInt(album_id);
-
-    const token = getTokenFunc(req);
-
-    const { username }: { username: string } = jwt_decode(token);
-
-    const user = await prisma.user.findFirst({ where: { username: username } });
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User does not exists" });
-    }
-
-    const album = await prisma.album.findUnique({ where: { id: album_id_ } });
-
-    return res.status(200).json({ success: true, message: album });
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getRecentEvents: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const now = new Date();
-
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    const events: string = await redisClient.get("recent-events");
-
-    if (events) {
-      const events_: Array<Event> = JSON.parse(events);
-
-      return res.status(200).json({ success: true, message: events_ });
-    } else {
-      const events = await prisma.event.findMany({
-        where: {
-          createdAt: {
-            gte: twentyFourHoursAgo,
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
-      await redisClient.setEx("recent-events", 1800, JSON.stringify(events));
-
-      return res.status(200).json({ success: true, message: events });
-    }
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
@@ -1699,94 +1245,6 @@ export const getRecentGroups: RequestHandler = async (
   }
 };
 
-export const getRecentAlbums: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const now = new Date();
-
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    const albums: string = await redisClient.get("recent-albums");
-
-    if (albums) {
-      const albums_: Array<Album> = JSON.parse(albums);
-
-      return res.status(200).json({ success: true, message: albums_ });
-    } else {
-      const albums = await prisma.album.findMany({
-        where: {
-          createdAt: {
-            gte: twentyFourHoursAgo,
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
-      await redisClient.setEx("recent-albums", 1800, JSON.stringify(albums));
-
-      return res.status(200).json({ success: true, message: albums });
-    }
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getEventsByUser: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const token = getTokenFunc(req);
-
-    const { username }: { username: string } = jwt_decode(token);
-
-    const user = await prisma.user.findFirst({ where: { username: username } });
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User does not exists" });
-    }
-
-    const events: string = await redisClient.get(`events-${user.username}`);
-
-    if (events) {
-      const events_: Array<Event> = JSON.parse(events);
-
-      return res.status(200).json({ success: true, message: events_ });
-    } else {
-      const events = await prisma.event.findMany({
-        where: { adminId: user.id },
-        orderBy: { createdAt: "desc" },
-      });
-
-      await redisClient.setEx(
-        `events-${user.username}`,
-        1800,
-        JSON.stringify(events)
-      );
-
-      return res.status(200).json({ success: true, message: events });
-    }
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
 export const getRecentUsers: RequestHandler = async (
   req: Request,
   res: Response,
@@ -1813,68 +1271,6 @@ export const getRecentUsers: RequestHandler = async (
 
       return res.status(200).json({ success: true, message: users });
     }
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const getMixedEventsAndAlbums: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const now = new Date();
-
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    const recent_events: string = await redisClient.get("recent-events");
-    let events_: Array<Event>;
-
-    if (recent_events) {
-      events_ = JSON.parse(recent_events);
-    } else {
-      events_ = await prisma.event.findMany({
-        where: {
-          createdAt: {
-            gte: twentyFourHoursAgo,
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-      await redisClient.setEx("recent-events", 1800, JSON.stringify(events_));
-    }
-
-    const recent_albums: string = await redisClient.get("recent-albums");
-    let albums_: Array<Album>;
-
-    if (recent_albums) {
-      albums_ = JSON.parse(recent_albums);
-    } else {
-      albums_ = await prisma.album.findMany({
-        where: {
-          createdAt: {
-            gte: twentyFourHoursAgo,
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-      await redisClient.setEx("recent-albums", 1800, JSON.stringify(albums_));
-    }
-
-    const mergedData: Array<Event | Album> = mergeItems(events_, albums_);
-
-    const shuffledData: Array<Event | Album> = shuffleItems(mergedData);
-
-    return res.status(200).json({ success: true, message: shuffledData });
   } catch (err) {
     if (!res.headersSent) {
       return res

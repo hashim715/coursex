@@ -130,11 +130,7 @@ const saveMessageToDB = async (message: string) => {
       college: string;
       year: string;
       image: string;
-      cover_image: string;
       courses: string;
-      theme: string;
-      fraternity: string;
-      relationship_status: string;
       major: string;
       createdAt: Date;
       updatedAt: Date;
@@ -144,8 +140,6 @@ const saveMessageToDB = async (message: string) => {
       verification_secret: string | null;
       isUserVerified: boolean;
       resetPasswordVerification: boolean;
-      clubs: string;
-      theme_color: string;
     };
 
     if (group_members) {
@@ -190,7 +184,7 @@ const saveMessageToDB = async (message: string) => {
         type: parsedMessage.type,
         status: status,
       });
-    } else {
+    } else if (parsedMessage.type === "image") {
       const message_created = await Message.create({
         sender: parsedMessage.sender,
         groupId: parseInt(parsedMessage.groupID),
@@ -198,6 +192,26 @@ const saveMessageToDB = async (message: string) => {
         timeStamp: parsedMessage.timeStamp,
         type: parsedMessage.type,
         images: parsedMessage.images,
+        status: status,
+      });
+    } else if (parsedMessage.type === "video") {
+      const message_created = await Message.create({
+        sender: parsedMessage.sender,
+        groupId: parseInt(parsedMessage.groupID),
+        message: parsedMessage.message,
+        timeStamp: parsedMessage.timeStamp,
+        type: parsedMessage.type,
+        videos: parsedMessage.videos,
+        status: status,
+      });
+    } else if (parsedMessage.type === "document") {
+      const message_created = await Message.create({
+        sender: parsedMessage.sender,
+        groupId: parseInt(parsedMessage.groupID),
+        message: parsedMessage.message,
+        timeStamp: parsedMessage.timeStamp,
+        type: parsedMessage.type,
+        documents: parsedMessage.documents,
         status: status,
       });
     }

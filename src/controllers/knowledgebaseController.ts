@@ -232,7 +232,7 @@ export const getStreamingChatbotResponse = async (
                 callback(content, false);
               }
             } catch (error) {
-              console.error("Error parsing chunk part:", part, error);
+              // console.error("Error parsing chunk part:", part, error);
             }
           }
         });
@@ -343,7 +343,7 @@ export const getAssistantDocuments: RequestHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { assistant_id } = req.body;
+    const { assistant_id } = req.params;
 
     if (!assistant_id.trim()) {
       return res
@@ -382,13 +382,17 @@ export const deleteDocumentsFromAssistant: RequestHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { file_id, assistantId }: { file_id: string; assistantId: string } =
-      req.body;
+    const {
+      file_id,
+      assistantId,
+      id,
+    }: { file_id: string; assistantId: string; id: string } = req.body;
 
-    if (!file_id.trim() || !assistantId.trim()) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide valid inputs" });
+    if (!file_id.trim() || !assistantId.trim() || !id.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "File id or assistant id are not valid",
+      });
     }
 
     const assistant = await prisma.assistant.findUnique({
@@ -402,6 +406,17 @@ export const deleteDocumentsFromAssistant: RequestHandler = async (
       });
     }
 
+    const document = await prisma.assistantDocuments.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document with this id does not exists",
+      });
+    }
+
     const response = await axios.delete(
       `https://prod-1-data.ke.pinecone.io/assistant/files/${assistant.name}/${file_id}`,
       {
@@ -412,16 +427,13 @@ export const deleteDocumentsFromAssistant: RequestHandler = async (
       }
     );
 
-    const document = await prisma.assistantDocuments.findFirst({
-      where: { document_id: file_id },
-    });
-
     await prisma.assistantDocuments.delete({ where: { id: document.id } });
 
     return res
       .status(200)
       .json({ success: true, message: "Document deleted successfully" });
   } catch (err) {
+    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)

@@ -10,11 +10,7 @@ export type User = {
   college: string;
   year: string;
   image: string;
-  cover_image: string;
   courses: string;
-  theme: string;
-  fraternity: string;
-  relationship_status: string;
   major: string;
   createdAt: Date;
   updatedAt: Date;
@@ -25,9 +21,6 @@ export type User = {
   isUserVerified: boolean;
   resetPasswordVerification: boolean;
   groups: Group[] | null;
-  clubs: string;
-  theme_color: string;
-  bio: string;
 };
 
 export type User2 = {
@@ -39,11 +32,7 @@ export type User2 = {
   college: string;
   year: string;
   image: string;
-  cover_image: string;
   courses: string;
-  theme: string;
-  fraternity: string;
-  relationship_status: string;
   major: string;
   createdAt: Date;
   updatedAt: Date;
@@ -53,9 +42,6 @@ export type User2 = {
   verification_secret: string | null;
   isUserVerified: boolean;
   resetPasswordVerification: boolean;
-  clubs: string;
-  theme_color: string;
-  bio: string;
 };
 
 export type Group = {

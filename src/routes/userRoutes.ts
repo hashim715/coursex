@@ -16,22 +16,9 @@ import {
   generateQrCode,
   getUserInfoById,
   leavethegroup,
-  createEvent,
-  getEvents,
-  getEventDetails,
   getGroups,
-  createJobs,
-  getJobDetails,
-  getJobs,
-  createAlbum,
-  getAlbumns,
-  getSingleAlbum,
-  getRecentAlbums,
-  getRecentEvents,
   getRecentGroups,
-  getEventsByUser,
   getRecentUsers,
-  getMixedEventsAndAlbums,
   createFlashCards,
   getFlashCards,
   getNonCourseGroupsByUser,
@@ -39,20 +26,13 @@ import {
   updateProfileDataOnSignUp,
   redirectUserToVerification,
   getUserAssistantName,
+  getGroupAssistantName,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
 
-const uploadProfileImage = multer({
-  dest: "uploads/profile",
-});
-
 const uploadGroupImage = multer({
   dest: "uploads/groups",
-});
-
-const uploadEventImage = multer({
-  dest: "uploads/events",
 });
 
 export const userRouter: Router = express.Router();
@@ -95,39 +75,11 @@ userRouter.route("/getUerInfoById/:id").get(protect, getUserInfoById);
 
 userRouter.route("/leaveGroup/:group_id").post(protect, leavethegroup);
 
-userRouter.route("/createEvent").post(protect, createEvent);
-
-userRouter.route("/getEvents").get(protect, getEvents);
-
-userRouter.route("/getEventDetails/:event_id").get(protect, getEventDetails);
-
 userRouter.route("/getGroups").get(protect, getGroups);
-
-userRouter.route("/createJobs").post(protect, createJobs);
-
-userRouter.route("/getJobs").get(protect, getJobs);
-
-userRouter.route("/getJobDetails/:job_id").get(protect, getJobDetails);
-
-userRouter.route("/createAlbum").post(protect, createAlbum);
-
-userRouter.route("/getAlbums").get(protect, getAlbumns);
-
-userRouter.route("/getSingleAlbum/:album_id").get(protect, getSingleAlbum);
-
-userRouter.route("/getRecentEvents").get(protect, getRecentEvents);
-
-userRouter.route("/getRecentAlbums").get(protect, getRecentAlbums);
 
 userRouter.route("/getRecentGroups").get(protect, getRecentGroups);
 
-userRouter.route("/getEventsByUser").get(protect, getEventsByUser);
-
 userRouter.route("/getRecentUsers").get(protect, getRecentUsers);
-
-userRouter
-  .route("/getMixedEventsAndAlbums")
-  .get(protect, getMixedEventsAndAlbums);
 
 userRouter.route("/createFlashCard/:group_id").post(protect, createFlashCards);
 
@@ -142,3 +94,7 @@ userRouter
   .get(redirectUserToVerification);
 
 userRouter.route("/getUserAssistantName").get(protect, getUserAssistantName);
+
+userRouter
+  .route("/getGroupAssistantName/:group_id")
+  .get(protect, getGroupAssistantName);

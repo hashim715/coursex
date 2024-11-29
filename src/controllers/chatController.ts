@@ -10,8 +10,6 @@ import {
   addActiveUsers,
   RemoveFromActiveUsersMap,
   RemoveFromGroupRoomMap,
-  addToSocketsListForTrackingUsers,
-  removeFromSocketsList,
   RemoveFromReversedGrouMap,
   RemoveFromReversedActiveUsersMap,
 } from "../utils/chatFunctions";
@@ -52,12 +50,14 @@ export const chatController = async (
         console.log(`Room joined by ${data.username}`);
       }
     });
+
     socket.on("add-user", async (data) => {
       if (data.username) {
         await addActiveUsers(data.username, socket.id);
         console.log(`Added User ${data.username}`);
       }
     });
+
     socket.on("leave-room", async (data) => {
       leaveRoomTriggered = true;
       if (data.groupID && data.username) {
@@ -66,6 +66,7 @@ export const chatController = async (
       }
       leaveRoomTriggered = false;
     });
+
     socket.on("join-chatbot-room", async (data) => {
       if (data.groupID && data.username) {
         socket.join(data.groupID);
@@ -73,6 +74,7 @@ export const chatController = async (
         console.log(`Chatbot Room joined by ${data.username}`);
       }
     });
+
     socket.on("leave-chatbot-room", async (data) => {
       leaveRoomTriggered = true;
       if (data.groupID && data.username) {
@@ -81,12 +83,14 @@ export const chatController = async (
       }
       leaveRoomTriggered = false;
     });
+
     socket.on("user-disconnecting", async (data) => {
       userDisconnectingTriggered = true;
       await RemoveFromActiveUsersMap(data.username, socket.id);
       console.log(`Removed User ${data.username}`);
       userDisconnectingTriggered = false;
     });
+
     socket.on("chatbot-message", async (msg): Promise<void> => {
       const parsedMessage = {
         message: msg.message,
@@ -129,6 +133,7 @@ export const chatController = async (
         }
       );
     });
+
     socket.on("message", async (msg): Promise<void> => {
       const parsedMessage = {
         message: msg.message,
@@ -138,6 +143,8 @@ export const chatController = async (
         timeStamp: msg.timeStamp,
         type: msg.type,
         images: msg.images,
+        documents: msg.documents,
+        videos: msg.videos,
       };
       if (parsedMessage.type === "text") {
         socket.to(parsedMessage.groupID).emit("message", {
@@ -147,7 +154,7 @@ export const chatController = async (
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
         });
-      } else {
+      } else if (parsedMessage.type === "image") {
         socket.to(parsedMessage.groupID).emit("message", {
           message: parsedMessage.message,
           sender: parsedMessage.sender,
@@ -156,12 +163,32 @@ export const chatController = async (
           type: parsedMessage.type,
           images: parsedMessage.images,
         });
+      } else if (parsedMessage.type === "video") {
+        socket.to(parsedMessage.groupID).emit("message", {
+          message: parsedMessage.message,
+          sender: parsedMessage.sender,
+          id: socket.id,
+          timeStamp: parsedMessage.timeStamp,
+          type: parsedMessage.type,
+          videos: parsedMessage.videos,
+        });
+      } else if (parsedMessage.type === "document") {
+        socket.to(parsedMessage.groupID).emit("message", {
+          message: parsedMessage.message,
+          sender: parsedMessage.sender,
+          id: socket.id,
+          timeStamp: parsedMessage.timeStamp,
+          type: parsedMessage.type,
+          documents: parsedMessage.documents,
+        });
       }
       await produceMessage(JSON.stringify(parsedMessage));
     });
+
     socket.on("disconnecting", async () => {
       console.log("disconnecting.....");
     });
+
     socket.on("disconnect", async () => {
       console.log("User disconnected " + socket.id);
       if (!leaveRoomTriggered) {
@@ -205,7 +232,7 @@ export const getMessagesByGroup: RequestHandler = async (
       groupId: parseInt(group_id),
     })
       .sort({ timeStamp: -1 })
-      .limit(10);
+      .limit(100);
 
     return res.status(200).json({ success: true, message: messages.reverse() });
   } catch (err) {
