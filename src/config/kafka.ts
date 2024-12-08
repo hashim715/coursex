@@ -191,7 +191,7 @@ const saveMessageToDB = async (message: string) => {
         message: parsedMessage.message,
         timeStamp: parsedMessage.timeStamp,
         type: parsedMessage.type,
-        images: parsedMessage.images,
+        image: parsedMessage.image,
         status: status,
       });
     } else if (parsedMessage.type === "video") {
@@ -201,7 +201,7 @@ const saveMessageToDB = async (message: string) => {
         message: parsedMessage.message,
         timeStamp: parsedMessage.timeStamp,
         type: parsedMessage.type,
-        videos: parsedMessage.videos,
+        video: parsedMessage.video,
         status: status,
       });
     } else if (parsedMessage.type === "document") {
@@ -211,7 +211,7 @@ const saveMessageToDB = async (message: string) => {
         message: parsedMessage.message,
         timeStamp: parsedMessage.timeStamp,
         type: parsedMessage.type,
-        documents: parsedMessage.documents,
+        document: parsedMessage.document,
         status: status,
       });
     }

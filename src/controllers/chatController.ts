@@ -142,9 +142,9 @@ export const chatController = async (
         id: socket.id,
         timeStamp: msg.timeStamp,
         type: msg.type,
-        images: msg.images,
-        documents: msg.documents,
-        videos: msg.videos,
+        image: msg.image,
+        document: msg.document,
+        video: msg.video,
       };
       if (parsedMessage.type === "text") {
         socket.to(parsedMessage.groupID).emit("message", {
@@ -161,7 +161,7 @@ export const chatController = async (
           id: socket.id,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
-          images: parsedMessage.images,
+          image: parsedMessage.image,
         });
       } else if (parsedMessage.type === "video") {
         socket.to(parsedMessage.groupID).emit("message", {
@@ -170,7 +170,7 @@ export const chatController = async (
           id: socket.id,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
-          videos: parsedMessage.videos,
+          video: parsedMessage.video,
         });
       } else if (parsedMessage.type === "document") {
         socket.to(parsedMessage.groupID).emit("message", {
@@ -179,7 +179,7 @@ export const chatController = async (
           id: socket.id,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
-          documents: parsedMessage.documents,
+          document: parsedMessage.document,
         });
       }
       await produceMessage(JSON.stringify(parsedMessage));
