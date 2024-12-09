@@ -105,6 +105,7 @@ model FlashCard {
 model Assistant {
   id Int @id @default(autoincrement())
   name String
+  chatbotName String @unique
   instructions String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

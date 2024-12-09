@@ -215,7 +215,6 @@ export const createGroup: RequestHandler = async (
       image,
       type,
       theme,
-      assistantName,
       assistantInstruction,
     } = req.body;
 
@@ -224,7 +223,6 @@ export const createGroup: RequestHandler = async (
       !college.trim() ||
       !description.trim() ||
       !type.trim() ||
-      !assistantName.trim() ||
       !assistantInstruction.trim()
     ) {
       return res
@@ -244,8 +242,11 @@ export const createGroup: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
+    const prefix = Date.now();
+    const uniqueAssistantName = `${prefix}-assistant`;
+
     const assistantData = await createAssistant(
-      assistantName,
+      uniqueAssistantName,
       assistantInstruction
     );
 
@@ -283,9 +284,10 @@ export const createGroup: RequestHandler = async (
 
     await prisma.assistant.create({
       data: {
-        name: assistantData.name,
+        name: "Sam AI",
         instructions: assistantData.instructions,
         group_id: group.id,
+        chatbotName: uniqueAssistantName,
       },
     });
 
@@ -859,7 +861,8 @@ export const getUserAssistantName: RequestHandler = async (
 
     return res.status(200).json({
       success: true,
-      message: assistant.name,
+      message: assistant.chatbotName,
+      name: assistant.name,
       profile: user.image,
       assistantId: assistant.id,
     });
@@ -903,7 +906,8 @@ export const getGroupAssistantName: RequestHandler = async (
 
     return res.status(200).json({
       success: true,
-      message: assistant.name,
+      message: assistant.chatbotName,
+      name: assistant.name,
       profile: group.image,
       assistantId: assistant.id,
     });
@@ -1460,8 +1464,11 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
+    const prefix = Date.now();
+    const uniqueAssistantName = `${prefix}-assistant`;
+
     const assistantData = await createAssistant(
-      assistantName,
+      uniqueAssistantName,
       assistantInstruction
     );
 
@@ -1474,9 +1481,10 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
 
     await prisma.assistant.create({
       data: {
-        name: assistantData.name,
+        name: assistantName,
         instructions: assistantData.instructions,
         user_id: user.id,
+        chatbotName: uniqueAssistantName,
       },
     });
 
