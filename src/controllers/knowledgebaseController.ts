@@ -271,6 +271,7 @@ export const createAssistant = async (
     );
     return response.data;
   } catch (err) {
+    console.log(err);
     return { error: true, message: err.response.data.message };
   }
 };
