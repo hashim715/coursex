@@ -145,6 +145,7 @@ export const chatController = async (
         image: msg.image,
         document: msg.document,
         video: msg.video,
+        cover_image: msg.cover_image,
       };
       if (parsedMessage.type === "text") {
         socket.to(parsedMessage.groupID).emit("message", {
@@ -162,6 +163,8 @@ export const chatController = async (
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
           image: parsedMessage.image,
+          grouped: false,
+          error: false,
         });
       } else if (parsedMessage.type === "video") {
         socket.to(parsedMessage.groupID).emit("message", {
@@ -180,6 +183,7 @@ export const chatController = async (
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
           document: parsedMessage.document,
+          cover_image: parsedMessage.cover_image,
         });
       }
       await produceMessage(JSON.stringify(parsedMessage));
@@ -234,7 +238,45 @@ export const getMessagesByGroup: RequestHandler = async (
       .sort({ timeStamp: -1 })
       .limit(100);
 
-    return res.status(200).json({ success: true, message: messages.reverse() });
+    const processedMessages = [];
+    let imageGroup = null;
+
+    for (const message of messages) {
+      if (message.type === "image") {
+        if (!imageGroup) {
+          imageGroup = {
+            type: "image",
+            images: [],
+            grouped: true,
+          };
+        }
+
+        imageGroup.images.push({
+          sender: message.sender,
+          groupId: message.groupID,
+          message: message.message,
+          timeStamp: message.timeStamp,
+          type: message.type,
+          image: message.image,
+          status: message.status,
+          error: false,
+        });
+      } else {
+        if (imageGroup) {
+          processedMessages.push(imageGroup);
+          imageGroup = null;
+        }
+        processedMessages.push(message);
+      }
+    }
+
+    if (imageGroup) {
+      processedMessages.push(imageGroup);
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, message: processedMessages.reverse() });
   } catch (err) {
     if (!res.headersSent) {
       return res

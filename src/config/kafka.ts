@@ -213,6 +213,7 @@ const saveMessageToDB = async (message: string) => {
         type: parsedMessage.type,
         document: parsedMessage.document,
         status: status,
+        cover_image: parsedMessage.cover_image,
       });
     }
   } catch (err) {
@@ -233,7 +234,9 @@ export const startMessageConsumer = async (): Promise<void> => {
         await saveMessageToDB(JSON.stringify(parsedMessage));
         console.log(
           `Message from ${topic} partition ${partition} message is ${
-            parsedMessage.type === "text" ? parsedMessage.message : "Images"
+            parsedMessage.type === "text"
+              ? parsedMessage.message
+              : parsedMessage.type
           }`
         );
       },
