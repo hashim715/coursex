@@ -243,11 +243,22 @@ export const getMessagesByGroup: RequestHandler = async (
 
     for (const message of messages) {
       if (message.type === "image") {
-        if (!imageGroup) {
+        if (!imageGroup || imageGroup.timeStamp !== message.timeStamp) {
+          if (imageGroup) {
+            if (imageGroup.images.length > 3) {
+              processedMessages.push(imageGroup);
+            } else {
+              processedMessages.push(
+                ...imageGroup.images.map((img) => ({ ...img, grouped: false }))
+              );
+            }
+          }
+
           imageGroup = {
             type: "image",
             images: [],
             grouped: true,
+            timeStamp: message.timeStamp,
           };
         }
 
@@ -263,7 +274,13 @@ export const getMessagesByGroup: RequestHandler = async (
         });
       } else {
         if (imageGroup) {
-          processedMessages.push(imageGroup);
+          if (imageGroup.images.length > 3) {
+            processedMessages.push(imageGroup);
+          } else {
+            processedMessages.push(
+              ...imageGroup.images.map((img) => ({ ...img, grouped: false }))
+            );
+          }
           imageGroup = null;
         }
         processedMessages.push(message);
@@ -271,7 +288,13 @@ export const getMessagesByGroup: RequestHandler = async (
     }
 
     if (imageGroup) {
-      processedMessages.push(imageGroup);
+      if (imageGroup.images.length > 3) {
+        processedMessages.push(imageGroup);
+      } else {
+        processedMessages.push(
+          ...imageGroup.images.map((img) => ({ ...img, grouped: false }))
+        );
+      }
     }
 
     return res
