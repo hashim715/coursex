@@ -12,6 +12,7 @@ import { chatRouter } from "./routes/chatRoutes";
 import { timeOutRouter } from "./routes/timeOutRoutes";
 import { verificationRouter } from "./routes/verificationRoutes";
 import { knowledgeBaseRouter } from "./routes/knowledgeBaseRoutes";
+import { webUserRouter } from "./routes/webUserRoutes";
 import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
@@ -65,6 +66,8 @@ app.use("/api/timeOut", timeOutRouter);
 app.use("/api/verify", verificationRouter);
 
 app.use("/api/knowledgeBase", knowledgeBaseRouter);
+
+app.use("/api/webUser", webUserRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
