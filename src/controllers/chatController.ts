@@ -91,7 +91,7 @@ export const chatController = async (
       userDisconnectingTriggered = false;
     });
 
-    socket.on("chatbot-message", async (msg): Promise<void> => {
+    socket.on("personal-chatbot-message", async (msg): Promise<void> => {
       const parsedMessage = {
         message: msg.message,
         groupID: msg.group_id,
@@ -103,7 +103,7 @@ export const chatController = async (
         assistant_name: msg.assistant_name,
       };
 
-      io.to(parsedMessage.groupID).emit("chatbot-message", {
+      io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
         message: "Chatbot is typing...",
         sender: parsedMessage.assistant_name,
         id: socket.id,
@@ -120,7 +120,50 @@ export const chatController = async (
         "none",
         parsedMessage.assistant_name,
         (chunk: string, isFinal: Boolean) => {
-          io.to(parsedMessage.groupID).emit("chatbot-message", {
+          io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
+            message: chunk,
+            sender: parsedMessage.assistant_name,
+            id: socket.id,
+            timeStamp: parsedMessage.timeStamp,
+            type: parsedMessage.type,
+            message_id: parsedMessage.message_id + 1,
+            isFinal: isFinal,
+            assistant_name: parsedMessage.assistant_name,
+          });
+        }
+      );
+    });
+
+    socket.on("group-chatbot-message", async (msg): Promise<void> => {
+      const parsedMessage = {
+        message: msg.message,
+        groupID: msg.group_id,
+        sender: msg.sender,
+        id: socket.id,
+        timeStamp: msg.timeStamp,
+        type: msg.type,
+        message_id: msg.message_id,
+        assistant_name: msg.assistant_name,
+      };
+
+      io.to(parsedMessage.groupID).emit("group-chatbot-message", {
+        message: "Chatbot is typing...",
+        sender: parsedMessage.assistant_name,
+        id: socket.id,
+        timeStamp: parsedMessage.timeStamp,
+        type: parsedMessage.type,
+        message_id: parsedMessage.message_id + 1,
+        isFinal: false,
+        assistant_name: parsedMessage.assistant_name,
+      });
+
+      await getStreamingChatbotResponse(
+        parsedMessage.message,
+        "none",
+        "none",
+        parsedMessage.assistant_name,
+        (chunk: string, isFinal: Boolean) => {
+          io.to(parsedMessage.groupID).emit("group-chatbot-message", {
             message: chunk,
             sender: parsedMessage.assistant_name,
             id: socket.id,
