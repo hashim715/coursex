@@ -279,7 +279,7 @@ export const getMessagesByGroup: RequestHandler = async (
       groupId: parseInt(group_id),
     })
       .sort({ timeStamp: -1 })
-      .limit(100);
+      .limit(50);
 
     const processedMessages = [];
     let imageGroup = null;
