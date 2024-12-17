@@ -10,14 +10,15 @@ import {
   addActiveUsers,
   RemoveFromActiveUsersMap,
   RemoveFromGroupRoomMap,
-  RemoveFromReversedGrouMap,
-  RemoveFromReversedActiveUsersMap,
+  saveUserSocketToRedis,
+  getusernameFromSocketId,
 } from "../utils/chatFunctions";
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { Message } from "../models/MessageSchema";
 import { getTokenFunc } from "./usercontroller";
 import jwt_decode from "jwt-decode";
 import { getStreamingChatbotResponse } from "./knowledgebaseController";
+import { prisma } from "../config/postgres";
 
 dotenv.config();
 
@@ -40,13 +41,11 @@ export const chatController = async (
   });
 
   io.on("connection", async (socket: Socket): Promise<void> => {
-    let userDisconnectingTriggered = false;
-    let leaveRoomTriggered = false;
-
     socket.on("join-room", async (data) => {
       if (data.groupID && data.username) {
-        socket.join(data.groupID);
-        await addSocketsToRoom(data.groupID, data.username, socket.id);
+        const groupID = data.groupID.toString();
+        socket.join(groupID);
+        await addSocketsToRoom(groupID, data.username, socket.id);
         console.log(`Room joined by ${data.username}`);
       }
     });
@@ -54,41 +53,27 @@ export const chatController = async (
     socket.on("add-user", async (data) => {
       if (data.username) {
         await addActiveUsers(data.username, socket.id);
+        await saveUserSocketToRedis(socket.id, data.username);
         console.log(`Added User ${data.username}`);
       }
-    });
-
-    socket.on("leave-room", async (data) => {
-      leaveRoomTriggered = true;
-      if (data.groupID && data.username) {
-        socket.leave(data.groupID);
-        await RemoveFromGroupRoomMap(data.groupID, data.username, socket.id);
-      }
-      leaveRoomTriggered = false;
     });
 
     socket.on("join-chatbot-room", async (data) => {
       if (data.groupID && data.username) {
         socket.join(data.groupID);
-        await addSocketsToRoom(data.groupID, data.username, socket.id);
         console.log(`Chatbot Room joined by ${data.username}`);
       }
     });
 
     socket.on("leave-chatbot-room", async (data) => {
-      leaveRoomTriggered = true;
       if (data.groupID && data.username) {
         socket.leave(data.groupID);
-        await RemoveFromGroupRoomMap(data.groupID, data.username, socket.id);
       }
-      leaveRoomTriggered = false;
     });
 
     socket.on("user-disconnecting", async (data) => {
-      userDisconnectingTriggered = true;
       await RemoveFromActiveUsersMap(data.username, socket.id);
       console.log(`Removed User ${data.username}`);
-      userDisconnectingTriggered = false;
     });
 
     socket.on("personal-chatbot-message", async (msg): Promise<void> => {
@@ -190,11 +175,13 @@ export const chatController = async (
         video: msg.video,
         cover_image: msg.cover_image,
       };
+
       if (parsedMessage.type === "text") {
         socket.to(parsedMessage.groupID).emit("message", {
           message: parsedMessage.message,
           sender: parsedMessage.sender,
           id: socket.id,
+          group_id: parsedMessage.groupID,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
         });
@@ -203,6 +190,7 @@ export const chatController = async (
           message: parsedMessage.message,
           sender: parsedMessage.sender,
           id: socket.id,
+          group_id: parsedMessage.groupID,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
           image: parsedMessage.image,
@@ -214,6 +202,7 @@ export const chatController = async (
           message: parsedMessage.message,
           sender: parsedMessage.sender,
           id: socket.id,
+          group_id: parsedMessage.groupID,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
           video: parsedMessage.video,
@@ -223,6 +212,7 @@ export const chatController = async (
           message: parsedMessage.message,
           sender: parsedMessage.sender,
           id: socket.id,
+          group_id: parsedMessage.groupID,
           timeStamp: parsedMessage.timeStamp,
           type: parsedMessage.type,
           document: parsedMessage.document,
@@ -238,11 +228,10 @@ export const chatController = async (
 
     socket.on("disconnect", async () => {
       console.log("User disconnected " + socket.id);
-      if (!leaveRoomTriggered) {
-        await RemoveFromReversedGrouMap(socket.id);
-      }
-      if (!userDisconnectingTriggered) {
-        await RemoveFromReversedActiveUsersMap(socket.id);
+      const username: string | null = await getusernameFromSocketId(socket.id);
+      if (username) {
+        await leaveRoom(username, socket.id);
+        await removeUser(username, socket.id);
       }
     });
   });
@@ -382,5 +371,58 @@ export const updateDeliverStatusOnConnection: RequestHandler = async (
         .status(500)
         .json({ success: false, message: "Server error occurred" });
     }
+  }
+};
+
+class Mutex {
+  private mutex = Promise.resolve();
+
+  lock(): PromiseLike<() => void> {
+    let begin: (unlock: () => void) => void = (unlock) => {};
+
+    this.mutex = this.mutex.then(() => new Promise(begin));
+
+    return new Promise((res) => {
+      begin = res;
+    });
+  }
+}
+
+const mutex = new Mutex();
+
+const leaveRoom = async (username: string, socket_id: string) => {
+  const unlock = await mutex.lock();
+  try {
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    const result = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    const groups = result.groups;
+    for (const group of groups) {
+      const groupID = group.id.toString();
+      await RemoveFromGroupRoomMap(groupID, username, socket_id);
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    unlock();
+  }
+};
+
+const removeUser = async (username: string, socket_id: string) => {
+  const unlock = await mutex.lock();
+  try {
+    await RemoveFromActiveUsersMap(username, socket_id);
+  } catch (err) {
+    console.log(err);
+  } finally {
+    unlock();
   }
 };

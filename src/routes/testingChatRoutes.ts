@@ -8,8 +8,6 @@ import {
   addActiveSocksts,
   RemoveFromSocketsList,
   getSocketsList,
-  removeFromActiveUserMapsUsingReverseMaps,
-  removeFromGroupRoomsUsingReverseMaps,
 } from "../controllers/testingChatFunctions";
 import { Router } from "express";
 import express from "express";
@@ -25,9 +23,3 @@ testingChatRouter.route("/getGroupRoomUsers").get(getGroupMapUsers);
 testingChatRouter.route("/addActiveSockets").post(addActiveSocksts);
 testingChatRouter.route("/getActiveSockets").get(getSocketsList);
 testingChatRouter.route("/RemoveFromSocketsList").post(RemoveFromSocketsList);
-testingChatRouter
-  .route("/RemoveFromReverseGroupMaps")
-  .post(removeFromGroupRoomsUsingReverseMaps);
-testingChatRouter
-  .route("/RemoveFromReverseUserMaps")
-  .post(removeFromActiveUserMapsUsingReverseMaps);

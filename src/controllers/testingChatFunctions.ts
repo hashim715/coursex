@@ -4,8 +4,6 @@ import {
   addActiveUsers,
   RemoveFromActiveUsersMap,
   RemoveFromGroupRoomMap,
-  RemoveFromReversedActiveUsersMap,
-  RemoveFromReversedGrouMap,
   addToSocketsListForTrackingUsers,
   removeFromSocketsList,
 } from "../utils/chatFunctions";
@@ -165,43 +163,6 @@ export const getSocketsList: RequestHandler = async (
     return res
       .status(200)
       .json({ success: true, message: JSON.parse(socketsList) });
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
-  }
-};
-
-export const removeFromGroupRoomsUsingReverseMaps: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<Response> => {
-  try {
-    const { socket_id } = req.body;
-    await RemoveFromReversedGrouMap(socket_id);
-    return res
-      .status(200)
-      .json({ success: true, message: "Removed from reverse group maps" });
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error occurred" });
-  }
-};
-
-export const removeFromActiveUserMapsUsingReverseMaps: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<Response> => {
-  try {
-    const { socket_id } = req.body;
-    await RemoveFromReversedActiveUsersMap(socket_id);
-    return res.status(200).json({
-      success: true,
-      message: "Removed from reverse active user maps",
-    });
   } catch (err) {
     return res
       .status(500)

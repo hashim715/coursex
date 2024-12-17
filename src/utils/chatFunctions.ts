@@ -7,17 +7,13 @@ type SocketDataType2 = { username: string; socket_ids: Array<string> };
 
 type UserDataType = [string, [string, SocketDataType2][]];
 
-type UserNameType = [string, SocketDataType2][];
-
 export type ActiveUsersMapType = Map<string, Set<string>>;
 
 type ActiveUsers = [string, Array<string>];
 
-type ReversedGroupMapType = Map<Map<SocketDataType1, string>, string>;
+type SavedUsersMapType = Map<string, string>;
 
-type ReversedMapType2 = Map<SocketDataType1, string>;
-
-type ReverseActiveuserMapType = Map<Set<string>, string>;
+type SavedUsers = Array<[string, string]>;
 
 class Mutex {
   private mutex = Promise.resolve();
@@ -35,7 +31,6 @@ class Mutex {
 
 const mutex = new Mutex();
 
-// Convert Map to serializable array format
 const serializeGroupMap = (map: GroupMapType): UserDataType[] => {
   return Array.from(map.entries()).map(
     ([groupID, userMap]: [string, Map<string, SocketDataType1>]) => {
@@ -55,7 +50,6 @@ const serializeGroupMap = (map: GroupMapType): UserDataType[] => {
   );
 };
 
-// Deserialize JSON data
 export const DeserializeGroupMap = (data: string): GroupMapType => {
   const entries = JSON.parse(data);
 
@@ -76,49 +70,34 @@ export const DeserializeGroupMap = (data: string): GroupMapType => {
   return groups;
 };
 
-export const RemoveFromGroupRoomMap = async (
-  groupID: string,
-  username: string,
-  socket_id: string
-): Promise<void> => {
-  const unlock = await mutex.lock();
+const SerializeActiveUsersMap = (
+  usersmap: ActiveUsersMapType
+): ActiveUsers[] => {
+  return Array.from(usersmap.entries()).map(([key, value]) => [
+    key,
+    Array.from(value),
+  ]);
+};
 
-  try {
-    const cachedData: string = await redisClient.get(`groups`);
-    if (cachedData) {
-      const usersockets: GroupMapType = DeserializeGroupMap(cachedData);
-      if (usersockets.has(groupID)) {
-        if (usersockets.get(groupID).has(username)) {
-          if (usersockets.get(groupID).get(username).socket_ids.size > 0) {
-            if (
-              usersockets.get(groupID).get(username).socket_ids.has(socket_id)
-            ) {
-              usersockets
-                .get(groupID)
-                .get(username)
-                .socket_ids.delete(socket_id);
-              console.log(`Chat Room left ${username}`);
-              if (
-                usersockets.get(groupID).get(username).socket_ids.size === 0
-              ) {
-                usersockets.get(groupID).delete(username);
-                if (usersockets.get(groupID).size === 0) {
-                  usersockets.delete(groupID);
-                }
-              }
-            }
-          }
-        }
-      }
-      await redisClient.setEx(
-        `groups`,
-        1800,
-        JSON.stringify(serializeGroupMap(usersockets))
-      );
-    }
-  } finally {
-    unlock();
-  }
+export const DeserializeActiveUsersMap = (data: string): ActiveUsersMapType => {
+  let parsedUsers: ActiveUsers = JSON.parse(data);
+  let activeusers: ActiveUsersMapType = new Map(
+    parsedUsers.map(([key, value]) => [key, new Set(value)])
+  );
+  return activeusers;
+};
+
+export const SerializeSocketConnectionMap = (
+  map: SavedUsersMapType
+): SavedUsers => {
+  return Array.from(map);
+};
+
+export const DeSerializeSocketConnectionMap = (
+  data: string
+): SavedUsersMapType => {
+  const parsedArray: SavedUsers = JSON.parse(data);
+  return new Map(parsedArray);
 };
 
 export const addSocketsToRoom = async (
@@ -127,7 +106,6 @@ export const addSocketsToRoom = async (
   socket_id: string
 ): Promise<void> => {
   const unlock = await mutex.lock();
-
   try {
     const cachedData: string = await redisClient.get(`groups`);
     if (cachedData) {
@@ -180,55 +158,6 @@ export const addSocketsToRoom = async (
   }
 };
 
-const SerializeActiveUsersMap = (
-  usersmap: ActiveUsersMapType
-): ActiveUsers[] => {
-  return Array.from(usersmap.entries()).map(([key, value]) => [
-    key,
-    Array.from(value),
-  ]);
-};
-
-export const DeserializeActiveUsersMap = (data: string): ActiveUsersMapType => {
-  let parsedUsers: ActiveUsers = JSON.parse(data);
-  let activeusers: ActiveUsersMapType = new Map(
-    parsedUsers.map(([key, value]) => [key, new Set(value)])
-  );
-  return activeusers;
-};
-
-export const RemoveFromActiveUsersMap = async (
-  username: string,
-  socket_id: string
-): Promise<void> => {
-  const unlock = await mutex.lock();
-
-  try {
-    const cachedData: string = await redisClient.get(`active_users`);
-    if (cachedData) {
-      const activeusers: ActiveUsersMapType =
-        DeserializeActiveUsersMap(cachedData);
-      if (activeusers.has(username)) {
-        if (activeusers.get(username).size > 0) {
-          if (activeusers.get(username).has(socket_id)) {
-            activeusers.get(username).delete(socket_id);
-            if (activeusers.get(username).size === 0) {
-              activeusers.delete(username);
-            }
-          }
-        }
-      }
-      await redisClient.setEx(
-        `active_users`,
-        1800,
-        JSON.stringify(SerializeActiveUsersMap(activeusers))
-      );
-    }
-  } finally {
-    unlock();
-  }
-};
-
 export const addActiveUsers = async (
   username: string,
   socket_id: string
@@ -265,90 +194,6 @@ export const addActiveUsers = async (
   }
 };
 
-const reversedMap = (map: GroupMapType): ReversedGroupMapType => {
-  const reversedMap: ReversedGroupMapType = new Map(
-    Array.from(map.entries()).map(([key, value]) => {
-      const reversedMap2: ReversedMapType2 = new Map(
-        Array.from(value.entries()).map(([key, value]) => [value, key])
-      );
-      return [reversedMap2, key];
-    })
-  );
-  return reversedMap;
-};
-
-type returnType = {
-  groupID: string | undefined | null;
-  username: string | undefined | null;
-};
-
-type returnType2 = { username: string | undefined | null };
-
-const getKeysFromReversedGrouMap = (
-  socket_id: string,
-  map: ReversedGroupMapType
-): returnType => {
-  let keys: returnType = { groupID: null, username: null };
-  for (const [group_key, group_value] of map) {
-    for (const [key, value] of group_key) {
-      if (key.socket_ids.has(socket_id)) {
-        keys.username = value;
-        keys.groupID = group_value;
-        return keys;
-      }
-    }
-  }
-  return keys;
-};
-
-export const RemoveFromReversedGrouMap = async (
-  socket_id: string
-): Promise<void> => {
-  const unlock = await mutex.lock();
-
-  try {
-    const cachedData: string = await redisClient.get(`groups`);
-    if (cachedData) {
-      const usersockets: GroupMapType = DeserializeGroupMap(cachedData);
-      const reversedGroupMap: ReversedGroupMapType = reversedMap(usersockets);
-      const { groupID, username }: returnType = getKeysFromReversedGrouMap(
-        socket_id,
-        reversedGroupMap
-      );
-      if (usersockets.has(groupID)) {
-        if (usersockets.get(groupID).has(username)) {
-          if (usersockets.get(groupID).get(username).socket_ids.size > 0) {
-            if (
-              usersockets.get(groupID).get(username).socket_ids.has(socket_id)
-            ) {
-              usersockets
-                .get(groupID)
-                .get(username)
-                .socket_ids.delete(socket_id);
-              console.log("Left the room due to disconnection....");
-              if (
-                usersockets.get(groupID).get(username).socket_ids.size === 0
-              ) {
-                usersockets.get(groupID).delete(username);
-                if (usersockets.get(groupID).size === 0) {
-                  usersockets.delete(groupID);
-                }
-              }
-            }
-          }
-        }
-      }
-      await redisClient.setEx(
-        `groups`,
-        1800,
-        JSON.stringify(serializeGroupMap(usersockets))
-      );
-    }
-  } finally {
-    unlock();
-  }
-};
-
 export const addToSocketsListForTrackingUsers = async (
   socket_id: string
 ): Promise<void> => {
@@ -375,41 +220,53 @@ export const addToSocketsListForTrackingUsers = async (
   }
 };
 
-const CheckForUserInActiveSocketsList = async (
-  socket_id: string
-): Promise<boolean> => {
-  const cachedData: string = await redisClient.get("active-sockets-list");
-  if (cachedData) {
-    const parsed: Array<string> = await JSON.parse(cachedData);
-    const activesockets: Set<string> = new Set(parsed);
-    if (activesockets.has(socket_id)) {
-      return true;
-    }
-  }
-  return false;
-};
-
-const reverseActiveUserMaps = (
-  map: ActiveUsersMapType
-): ReverseActiveuserMapType => {
-  const reversedMap: ReverseActiveuserMapType = new Map(
-    Array.from(map.entries()).map(([key, value]) => [value, key])
-  );
-  return reversedMap;
-};
-
-const getKeysFromActiveUsersMap = (
-  map: ReverseActiveuserMapType,
-  socket_id: string
+export const saveUserSocketToRedis = async (
+  socket_id: string,
+  username: string
 ) => {
-  const keys: returnType2 = { username: null };
-  for (const [key, value] of map) {
-    if (key.has(socket_id)) {
-      keys.username = value;
-      return keys;
+  const unlock = await mutex.lock();
+  try {
+    const cachedData: string = await redisClient.get(`user_sockets_data`);
+    if (cachedData) {
+      const usersMap: SavedUsersMapType =
+        DeSerializeSocketConnectionMap(cachedData);
+      usersMap.set(socket_id, username);
+      await redisClient.setEx(
+        "user_sockets_data",
+        1800,
+        JSON.stringify(SerializeSocketConnectionMap(usersMap))
+      );
+    } else {
+      await redisClient.setEx(
+        "user_sockets_data",
+        1800,
+        JSON.stringify(Array.from(new Map([[socket_id, username]])))
+      );
     }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    unlock();
   }
-  return keys;
+};
+
+export const getusernameFromSocketId = async (socket_id: string) => {
+  const unlock = await mutex.lock();
+  try {
+    const cachedData: string = await redisClient.get(`user_sockets_data`);
+    if (cachedData) {
+      const usersMap: SavedUsersMapType =
+        DeSerializeSocketConnectionMap(cachedData);
+      return usersMap.get(socket_id);
+    } else {
+      return null;
+    }
+  } catch (err) {
+    console.log(err);
+    return null;
+  } finally {
+    unlock();
+  }
 };
 
 export const removeFromSocketsList = async (socket_id: string) => {
@@ -429,19 +286,54 @@ export const removeFromSocketsList = async (socket_id: string) => {
   }
 };
 
-const asyncFunction = async () => {
+export const RemoveFromGroupRoomMap = async (
+  groupID: string,
+  username: string,
+  socket_id: string
+): Promise<void> => {
   const unlock = await mutex.lock();
-
   try {
-    // Critical section
-    // Perform your asynchronous operations here
-    // Example: await someAsyncOperation();
+    const cachedData: string = await redisClient.get(`groups`);
+    if (cachedData) {
+      const usersockets: GroupMapType = DeserializeGroupMap(cachedData);
+      if (usersockets.has(groupID)) {
+        if (usersockets.get(groupID).has(username)) {
+          if (usersockets.get(groupID).get(username).socket_ids.size > 0) {
+            if (
+              usersockets.get(groupID).get(username).socket_ids.has(socket_id)
+            ) {
+              usersockets
+                .get(groupID)
+                .get(username)
+                .socket_ids.delete(socket_id);
+              console.log(`chat room left ${username}`);
+              if (
+                usersockets.get(groupID).get(username).socket_ids.size === 0
+              ) {
+                usersockets.get(groupID).delete(username);
+                if (usersockets.get(groupID).size === 0) {
+                  usersockets.delete(groupID);
+                }
+              }
+            }
+          }
+        }
+      }
+      await redisClient.setEx(
+        `groups`,
+        1800,
+        JSON.stringify(serializeGroupMap(usersockets))
+      );
+    }
   } finally {
     unlock();
   }
 };
 
-export const RemoveFromReversedActiveUsersMap = async (socket_id: string) => {
+export const RemoveFromActiveUsersMap = async (
+  username: string,
+  socket_id: string
+): Promise<void> => {
   const unlock = await mutex.lock();
 
   try {
@@ -449,28 +341,22 @@ export const RemoveFromReversedActiveUsersMap = async (socket_id: string) => {
     if (cachedData) {
       const activeusers: ActiveUsersMapType =
         DeserializeActiveUsersMap(cachedData);
-      const reversedActiveSockets: ReverseActiveuserMapType =
-        reverseActiveUserMaps(activeusers);
-      const { username }: returnType2 = getKeysFromActiveUsersMap(
-        reversedActiveSockets,
-        socket_id
-      );
       if (activeusers.has(username)) {
         if (activeusers.get(username).size > 0) {
           if (activeusers.get(username).has(socket_id)) {
             activeusers.get(username).delete(socket_id);
-            console.log("Removed the user during disconnection....");
+            console.log(`removed user ${username}`);
             if (activeusers.get(username).size === 0) {
               activeusers.delete(username);
             }
-            await redisClient.setEx(
-              `active_users`,
-              1800,
-              JSON.stringify(SerializeActiveUsersMap(activeusers))
-            );
           }
         }
       }
+      await redisClient.setEx(
+        `active_users`,
+        1800,
+        JSON.stringify(SerializeActiveUsersMap(activeusers))
+      );
     }
   } finally {
     unlock();
