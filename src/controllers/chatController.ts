@@ -176,6 +176,8 @@ export const chatController = async (
         cover_image: msg.cover_image,
       };
 
+      parsedMessage.groupID = msg.group_id.toString();
+
       if (parsedMessage.type === "text") {
         socket.to(parsedMessage.groupID).emit("message", {
           message: parsedMessage.message,
