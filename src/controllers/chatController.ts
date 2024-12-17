@@ -68,12 +68,8 @@ export const chatController = async (
     socket.on("leave-chatbot-room", async (data) => {
       if (data.groupID && data.username) {
         socket.leave(data.groupID);
+        console.log(`chatbot room left ${data.username}`);
       }
-    });
-
-    socket.on("user-disconnecting", async (data) => {
-      await RemoveFromActiveUsersMap(data.username, socket.id);
-      console.log(`Removed User ${data.username}`);
     });
 
     socket.on("personal-chatbot-message", async (msg): Promise<void> => {
