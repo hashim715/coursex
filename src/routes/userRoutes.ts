@@ -4,6 +4,7 @@ import {
   register,
   login,
   createGroup,
+  createNonCourseGroup,
   testingController,
   getGroupsByUser,
   getGroupDetails,
@@ -98,3 +99,5 @@ userRouter.route("/getUserAssistantName").get(protect, getUserAssistantName);
 userRouter
   .route("/getGroupAssistantName/:group_id")
   .get(protect, getGroupAssistantName);
+
+userRouter.route("/createNonCourseGroup").post(protect, createNonCourseGroup);

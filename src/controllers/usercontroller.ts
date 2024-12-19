@@ -390,6 +390,161 @@ export const createGroup: RequestHandler = async (
   }
 };
 
+export const createNonCourseGroup: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response> => {
+  try {
+    const { name, college, description, image, type, theme } = req.body;
+
+    if (
+      !name.trim() ||
+      !college.trim() ||
+      !description.trim() ||
+      !type.trim()
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    let group;
+    if (image) {
+      group = await prisma.group.create({
+        data: {
+          name: name,
+          college: college,
+          description: description,
+          admins: [user.id],
+          image: image,
+          type: type,
+        },
+      });
+    } else {
+      group = await prisma.group.create({
+        data: {
+          name: name,
+          college: college,
+          description: description,
+          admins: [user.id],
+          type: type,
+          theme: theme,
+        },
+      });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { groups: { connect: { id: group.id } } },
+    });
+
+    await prisma.group.update({
+      where: { id: group.id },
+      data: { users: { connect: { id: user.id } } },
+    });
+
+    const groups: string = await redisClient.get("total_client_groups");
+
+    const group_members = await prisma.group.findUnique({
+      where: { id: group.id },
+      select: { users: true },
+    });
+
+    const group_data = {
+      id: group.id,
+      name: group.name,
+      image: group.image,
+      admins: group.admins,
+      college: group.college,
+      description: group.description,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+      _count: { users: group_members.users.length },
+    };
+
+    if (groups && group.type === "non-course") {
+      const groups_: Array<Group2> = JSON.parse(groups);
+
+      groups_.unshift(group_data);
+
+      await redisClient.setEx(
+        "total_client_groups",
+        1800,
+        JSON.stringify(groups_)
+      );
+    }
+
+    const recent_groups: string = await redisClient.get("recent-groups");
+
+    if (recent_groups && group.type === "non-course") {
+      const groups_: Array<Group2> = JSON.parse(recent_groups);
+
+      groups_.unshift(group_data);
+
+      await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
+    }
+
+    let group_created = await prisma.group.findUnique({
+      where: { id: group.id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+          },
+        },
+      },
+    });
+
+    if (group_created.type === "course") {
+      return res.status(200).json({
+        success: true,
+        message: "Group created successfully",
+        group: group_created,
+      });
+    } else {
+      const group_info = {
+        id: group_created.id,
+        name: group_created.name,
+        image: group_created.image,
+        admins: group_created.admins,
+        college: group_created.college,
+        description: group_created.description,
+        createdAt: group_created.createdAt,
+        updatedAt: group_created.updatedAt,
+        recent_message: "No messages",
+        theme: group_created.theme,
+        type: group_created.type,
+        sender: null as string | null,
+      };
+      return res.status(200).json({
+        success: true,
+        message: "Group created successfully",
+        group: group_info,
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
 export const getGroupsByUser: RequestHandler = async (
   req: Request,
   res: Response,
