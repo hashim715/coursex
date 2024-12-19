@@ -484,7 +484,11 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
         createdAt: group.createdAt,
         updatedAt: group.updatedAt,
         recent_message:
-          messages.length > 0 ? messages[0].message : "No messages",
+          messages.length > 0
+            ? messages[0].type === "text"
+              ? messages[0].message
+              : messages[0].type
+            : "No messages",
         theme: group.theme,
         type: group.type,
         sender: messages.length > 0 ? messages[0].sender : null,
