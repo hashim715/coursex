@@ -18,6 +18,11 @@ import { Message } from "../models/MessageSchema";
 import { getTokenFunc } from "./usercontroller";
 import jwt_decode from "jwt-decode";
 import { getStreamingChatbotResponse } from "./knowledgebaseController";
+import {
+  chatWithGeminiFunction,
+  searchTheWebFunction,
+  chatWithDocumentFunction,
+} from "./aiController";
 import { prisma } from "../config/postgres";
 
 dotenv.config();
@@ -80,39 +85,75 @@ export const chatController = async (
         id: socket.id,
         timeStamp: msg.timeStamp,
         type: msg.type,
+        taskType: msg.taskType,
         message_id: msg.message_id,
-        assistant_name: msg.assistant_name,
+        previousChat: msg.previousChat,
+        document_url: msg.document_url,
       };
 
       io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
         message: "Chatbot is typing...",
-        sender: parsedMessage.assistant_name,
+        sender: "Sage",
         id: socket.id,
         timeStamp: parsedMessage.timeStamp,
         type: parsedMessage.type,
         message_id: parsedMessage.message_id + 1,
         isFinal: false,
-        assistant_name: parsedMessage.assistant_name,
+        taskType: parsedMessage.taskType,
       });
 
-      await getStreamingChatbotResponse(
-        parsedMessage.message,
-        "none",
-        "none",
-        parsedMessage.assistant_name,
-        (chunk: string, isFinal: Boolean) => {
-          io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
-            message: chunk,
-            sender: parsedMessage.assistant_name,
-            id: socket.id,
-            timeStamp: parsedMessage.timeStamp,
-            type: parsedMessage.type,
-            message_id: parsedMessage.message_id + 1,
-            isFinal: isFinal,
-            assistant_name: parsedMessage.assistant_name,
-          });
-        }
-      );
+      if (parsedMessage.taskType === "webChat") {
+        await searchTheWebFunction(
+          parsedMessage.message,
+          (chunk: string, isFinal: Boolean) => {
+            io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
+              message: chunk,
+              sender: "Sage",
+              id: socket.id,
+              timeStamp: parsedMessage.timeStamp,
+              type: parsedMessage.type,
+              message_id: parsedMessage.message_id + 1,
+              taskType: parsedMessage.taskType,
+              isFinal: isFinal,
+            });
+          }
+        );
+      } else if (parsedMessage.taskType === "documentChat") {
+        await chatWithDocumentFunction(
+          parsedMessage.message,
+          parsedMessage.document_url,
+          (chunk: string, isFinal: Boolean) => {
+            io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
+              message: chunk,
+              sender: "Sage",
+              id: socket.id,
+              timeStamp: parsedMessage.timeStamp,
+              type: parsedMessage.type,
+              message_id: parsedMessage.message_id + 1,
+              taskType: parsedMessage.taskType,
+              isFinal: isFinal,
+            });
+          }
+        );
+      } else if (parsedMessage.taskType === "geminiChat") {
+        await chatWithGeminiFunction(
+          parsedMessage.message,
+          "none",
+          parsedMessage.previousChat,
+          (chunk: string, isFinal: Boolean) => {
+            io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
+              message: chunk,
+              sender: "Sage",
+              id: socket.id,
+              timeStamp: parsedMessage.timeStamp,
+              type: parsedMessage.type,
+              message_id: parsedMessage.message_id + 1,
+              taskType: parsedMessage.taskType,
+              isFinal: isFinal,
+            });
+          }
+        );
+      }
     });
 
     socket.on("group-chatbot-message", async (msg): Promise<void> => {

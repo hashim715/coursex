@@ -231,9 +231,7 @@ export const getStreamingChatbotResponse = async (
                 const content = chunkObject.delta.content;
                 callback(content, false);
               }
-            } catch (error) {
-              // console.error("Error parsing chunk part:", part, error);
-            }
+            } catch (error) {}
           }
         });
       } catch (error) {}
