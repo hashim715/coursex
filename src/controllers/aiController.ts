@@ -189,9 +189,16 @@ export const getYouTubeSummary: RequestHandler = async (
       }
     );
 
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Summarize this one: ${response.data.content}`;
+
+    const result = await model.generateContent(prompt);
+
     return res
       .status(200)
-      .json({ success: true, message: response.data.content });
+      .json({ success: true, message: result.response.text() });
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -225,9 +232,16 @@ export const getWebPageSummary: RequestHandler = async (
       }
     );
 
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Summarize this one: ${response.data.content}`;
+
+    const result = await model.generateContent(prompt);
+
     return res
       .status(200)
-      .json({ success: true, message: response.data.content });
+      .json({ success: true, message: result.response.text() });
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -371,6 +385,7 @@ export const getDocuments: RequestHandler = async (
 
 export const searchTheWebFunction = async (
   messageContent: string,
+  firstChat: Array<any>,
   callback: (chunk: string, isFinal: Boolean) => void
 ) => {
   try {
@@ -393,7 +408,33 @@ export const searchTheWebFunction = async (
       { apiVersion: "v1beta" }
     );
 
-    const result = await model.generateContentStream(messageContent);
+    const history = firstChat.map((message, index) => {
+      if (index % 2 === 0) {
+        return {
+          role: "user",
+          parts: [
+            {
+              text: `${message}`,
+            },
+          ],
+        };
+      } else {
+        return {
+          role: "model",
+          parts: [
+            {
+              text: `${message}`,
+            },
+          ],
+        };
+      }
+    });
+
+    const chat = model.startChat({
+      history: history,
+    });
+
+    let result = await chat.sendMessageStream(messageContent);
 
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
@@ -462,7 +503,7 @@ export const chatWithGeminiFunction = async (
           role: "user",
           parts: [
             {
-              text: `this is the summary of youtube video now remember this i will ask you questions about it: ${previousChat}`,
+              text: `this is the summary of link now remember this i will ask you questions about it: ${previousChat}`,
             },
           ],
         },

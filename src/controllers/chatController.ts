@@ -89,6 +89,7 @@ export const chatController = async (
         message_id: msg.message_id,
         previousChat: msg.previousChat,
         document_url: msg.document_url,
+        chat_history: msg.chat_history,
       };
 
       io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
@@ -105,6 +106,7 @@ export const chatController = async (
       if (parsedMessage.taskType === "webChat") {
         await searchTheWebFunction(
           parsedMessage.message,
+          parsedMessage.chat_history,
           (chunk: string, isFinal: Boolean) => {
             io.to(parsedMessage.groupID).emit("personal-chatbot-message", {
               message: chunk,
