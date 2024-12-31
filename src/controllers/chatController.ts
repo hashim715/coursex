@@ -331,13 +331,21 @@ export const getMessagesByGroup: RequestHandler = async (
             type: "image",
             images: [],
             grouped: true,
+            _id: message._id,
+            sender: message.sender,
+            groupId: message.groupId,
+            message: message.message,
             timeStamp: message.timeStamp,
+            image: message.image,
+            status: message.status,
+            error: false,
           };
         }
 
         imageGroup.images.push({
+          _id: message._id,
           sender: message.sender,
-          groupId: message.groupID,
+          groupId: message.groupId,
           message: message.message,
           timeStamp: message.timeStamp,
           type: message.type,
