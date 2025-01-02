@@ -1,12 +1,8 @@
 import admin, { ServiceAccount } from "firebase-admin";
-import dotenv from "dotenv";
+import * as serviceAccount from "../../service-account/coursex-service-account.json";
 
-dotenv.config();
-
-const serviceAccount: ServiceAccount = JSON.parse(
-  process.env.FIREBASE_ADMIN_CREDENTIALS as string
-);
-
-export const firebase_admin = admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount as ServiceAccount),
 });
+
+export const firebase_admin = admin;
