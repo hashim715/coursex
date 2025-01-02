@@ -13,6 +13,7 @@ import { timeOutRouter } from "./routes/timeOutRoutes";
 import { verificationRouter } from "./routes/verificationRoutes";
 import { knowledgeBaseRouter } from "./routes/knowledgeBaseRoutes";
 import { webUserRouter } from "./routes/webUserRoutes";
+import { notificationRouter } from "./routes/notificationRoutes";
 import { aiRouter } from "./routes/aiRoutes";
 import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
@@ -71,6 +72,8 @@ app.use("/api/knowledgeBase", knowledgeBaseRouter);
 app.use("/api/webUser", webUserRouter);
 
 app.use("/api/ai", aiRouter);
+
+app.use("/api/notification", notificationRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {

@@ -627,7 +627,7 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
         groupId: group.id,
       })
         .sort({ timeStamp: -1 })
-        .limit(10);
+        .limit(1);
 
       const group_data = {
         id: group.id,

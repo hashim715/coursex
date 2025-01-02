@@ -311,76 +311,7 @@ export const getMessagesByGroup: RequestHandler = async (
       .sort({ timeStamp: -1 })
       .limit(50);
 
-    const processedMessages = [];
-    let imageGroup = null;
-
-    for (const message of messages) {
-      if (message.type === "image") {
-        if (!imageGroup || imageGroup.timeStamp !== message.timeStamp) {
-          if (imageGroup) {
-            if (imageGroup.images.length > 3) {
-              processedMessages.push(imageGroup);
-            } else {
-              processedMessages.push(
-                ...imageGroup.images.map((img) => ({ ...img, grouped: false }))
-              );
-            }
-          }
-
-          imageGroup = {
-            type: "image",
-            images: [],
-            grouped: true,
-            _id: message._id,
-            sender: message.sender,
-            groupId: message.groupId,
-            message: message.message,
-            timeStamp: message.timeStamp,
-            image: message.image,
-            status: message.status,
-            error: false,
-          };
-        }
-
-        imageGroup.images.push({
-          _id: message._id,
-          sender: message.sender,
-          groupId: message.groupId,
-          message: message.message,
-          timeStamp: message.timeStamp,
-          type: message.type,
-          image: message.image,
-          status: message.status,
-          error: false,
-        });
-      } else {
-        if (imageGroup) {
-          if (imageGroup.images.length > 3) {
-            processedMessages.push(imageGroup);
-          } else {
-            processedMessages.push(
-              ...imageGroup.images.map((img) => ({ ...img, grouped: false }))
-            );
-          }
-          imageGroup = null;
-        }
-        processedMessages.push(message);
-      }
-    }
-
-    if (imageGroup) {
-      if (imageGroup.images.length > 3) {
-        processedMessages.push(imageGroup);
-      } else {
-        processedMessages.push(
-          ...imageGroup.images.map((img) => ({ ...img, grouped: false }))
-        );
-      }
-    }
-
-    return res
-      .status(200)
-      .json({ success: true, message: processedMessages.reverse() });
+    return res.status(200).json({ success: true, message: messages.reverse() });
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -419,6 +350,69 @@ export const updateDeliverStatusOnConnection: RequestHandler = async (
       return res
         .status(500)
         .json({ success: false, message: "Server error occurred" });
+    }
+  }
+};
+
+export const syncUserMessagesForAllGroups: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const groups = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    const filteredGroups: Array<any> = [];
+
+    for (let group of groups.groups) {
+      const messages = await Message.find({
+        groupId: group.id,
+        [`status.${username}`]: "sent",
+      }).sort({ timeStamp: -1 });
+
+      await Message.updateMany(
+        {
+          $or: [{ [`status.${username}`]: "sent" }],
+        },
+        {
+          $set: {
+            [`status.${username}`]: "delivered",
+          },
+        }
+      );
+
+      const group_data = {
+        ...group,
+        messages: messages,
+      };
+      filteredGroups.push(group_data);
+    }
+
+    return res.status(200).json({ success: true, message: filteredGroups });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
     }
   }
 };
