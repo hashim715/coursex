@@ -105,7 +105,7 @@ export const addSocketsToRoom = async (
   username: string,
   socket_id: string
 ): Promise<void> => {
-  // const unlock = await mutex.lock();
+  const unlock = await mutex.lock();
   try {
     const cachedData: string = await redisClient.get(`groups`);
     if (cachedData) {
@@ -130,10 +130,11 @@ export const addSocketsToRoom = async (
           ])
         );
       }
-      await redisClient
-        .multi()
-        .setEx(`groups`, 1800, JSON.stringify(serializeGroupMap(usersockets)))
-        .exec();
+      await redisClient.setEx(
+        `groups`,
+        1800,
+        JSON.stringify(serializeGroupMap(usersockets))
+      );
     } else {
       const usersockets: GroupMapType = new Map([
         [
@@ -146,15 +147,16 @@ export const addSocketsToRoom = async (
           ]),
         ],
       ]);
-      await redisClient
-        .multi()
-        .setEx(`groups`, 1800, JSON.stringify(serializeGroupMap(usersockets)))
-        .exec();
+      await redisClient.setEx(
+        `groups`,
+        1800,
+        JSON.stringify(serializeGroupMap(usersockets))
+      );
     }
   } catch (err) {
     console.log(err);
   } finally {
-    // unlock();
+    unlock();
   }
 };
 
@@ -162,7 +164,7 @@ export const addActiveUsers = async (
   username: string,
   socket_id: string
 ): Promise<void> => {
-  // const unlock = await mutex.lock();
+  const unlock = await mutex.lock();
 
   try {
     const cachedData: string = await redisClient.get(`active_users`);
@@ -174,31 +176,25 @@ export const addActiveUsers = async (
       } else {
         activeusers.set(username, new Set<string>([socket_id]));
       }
-      await redisClient
-        .multi()
-        .setEx(
-          `active_users`,
-          1800,
-          JSON.stringify(SerializeActiveUsersMap(activeusers))
-        )
-        .exec();
+      await redisClient.setEx(
+        `active_users`,
+        1800,
+        JSON.stringify(SerializeActiveUsersMap(activeusers))
+      );
     } else {
       const activeusers: ActiveUsersMapType = new Map([
         [username, new Set<string>([socket_id])],
       ]);
-      await redisClient
-        .multi()
-        .setEx(
-          `active_users`,
-          1800,
-          JSON.stringify(SerializeActiveUsersMap(activeusers))
-        )
-        .exec();
+      await redisClient.setEx(
+        `active_users`,
+        1800,
+        JSON.stringify(SerializeActiveUsersMap(activeusers))
+      );
     }
   } catch (err) {
     console.log(err);
   } finally {
-    // unlock();
+    unlock();
   }
 };
 
@@ -237,40 +233,34 @@ export const saveUserSocketToRedis = async (
   socket_id: string,
   username: string
 ) => {
-  // const unlock = await mutex.lock();
+  const unlock = await mutex.lock();
   try {
     const cachedData: string = await redisClient.get(`user_sockets_data`);
     if (cachedData) {
       const usersMap: SavedUsersMapType =
         DeSerializeSocketConnectionMap(cachedData);
       usersMap.set(socket_id, username);
-      await redisClient
-        .multi()
-        .setEx(
-          "user_sockets_data",
-          1800,
-          JSON.stringify(SerializeSocketConnectionMap(usersMap))
-        )
-        .exec();
+      await redisClient.setEx(
+        "user_sockets_data",
+        1800,
+        JSON.stringify(SerializeSocketConnectionMap(usersMap))
+      );
     } else {
-      await redisClient
-        .multi()
-        .setEx(
-          "user_sockets_data",
-          1800,
-          JSON.stringify(Array.from(new Map([[socket_id, username]])))
-        )
-        .exec();
+      await redisClient.setEx(
+        "user_sockets_data",
+        1800,
+        JSON.stringify(Array.from(new Map([[socket_id, username]])))
+      );
     }
   } catch (err) {
     console.log(err);
   } finally {
-    // unlock();
+    unlock();
   }
 };
 
 export const getusernameFromSocketId = async (socket_id: string) => {
-  // const unlock = await mutex.lock();
+  const unlock = await mutex.lock();
   try {
     const cachedData: string = await redisClient.get(`user_sockets_data`);
     if (cachedData) {
@@ -284,7 +274,7 @@ export const getusernameFromSocketId = async (socket_id: string) => {
     console.log(err);
     return null;
   } finally {
-    // unlock();
+    unlock();
   }
 };
 
@@ -298,14 +288,11 @@ export const removeFromSocketsList = async (socket_id: string) => {
         activesockets.delete(socket_id);
         console.log("Removed the user from sockets list....");
       }
-      await redisClient
-        .multi()
-        .setEx(
-          "active-sockets-list",
-          1800,
-          JSON.stringify(Array.from(activesockets))
-        )
-        .exec();
+      await redisClient.setEx(
+        "active-sockets-list",
+        1800,
+        JSON.stringify(Array.from(activesockets))
+      );
     }
   } catch (err) {
     console.log(err);
@@ -318,7 +305,7 @@ export const RemoveFromGroupRoomMap = async (
   username: string,
   socket_id: string
 ): Promise<void> => {
-  // const unlock = await mutex.lock();
+  const unlock = await mutex.lock();
   try {
     const cachedData: string = await redisClient.get(`groups`);
     if (cachedData) {
@@ -346,15 +333,16 @@ export const RemoveFromGroupRoomMap = async (
           }
         }
       }
-      await redisClient
-        .multi()
-        .setEx(`groups`, 1800, JSON.stringify(serializeGroupMap(usersockets)))
-        .exec();
+      await redisClient.setEx(
+        `groups`,
+        1800,
+        JSON.stringify(serializeGroupMap(usersockets))
+      );
     }
   } catch (err) {
     console.log(err);
   } finally {
-    // unlock();
+    unlock();
   }
 };
 
@@ -362,7 +350,7 @@ export const RemoveFromActiveUsersMap = async (
   username: string,
   socket_id: string
 ): Promise<void> => {
-  // const unlock = await mutex.lock();
+  const unlock = await mutex.lock();
 
   try {
     const cachedData: string = await redisClient.get(`active_users`);
@@ -380,18 +368,15 @@ export const RemoveFromActiveUsersMap = async (
           }
         }
       }
-      await redisClient
-        .multi()
-        .setEx(
-          `active_users`,
-          1800,
-          JSON.stringify(SerializeActiveUsersMap(activeusers))
-        )
-        .exec();
+      await redisClient.setEx(
+        `active_users`,
+        1800,
+        JSON.stringify(SerializeActiveUsersMap(activeusers))
+      );
     }
   } catch (err) {
     console.log(err);
   } finally {
-    // unlock();
+    unlock();
   }
 };

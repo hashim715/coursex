@@ -47,11 +47,8 @@ export const chatController = async (
 
   io.on("connection", async (socket: Socket): Promise<void> => {
     socket.on("join-room", async (data) => {
-      if (data.groupID && data.username) {
-        const groupID = data.groupID.toString();
-        socket.join(groupID);
-        await addSocketsToRoom(groupID, data.username, socket.id);
-        console.log(`Room joined by ${data.username}`);
+      if (data.username) {
+        await joinRoom(data.username, socket);
       }
     });
 
@@ -440,6 +437,35 @@ class Mutex {
 }
 
 const mutex = new Mutex();
+
+const joinRoom = async (username: string, socket: Socket) => {
+  const unlock = await mutex.lock();
+  try {
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    const result = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    const groups = result.groups;
+
+    for (const group of groups) {
+      const groupID = group.id.toString();
+      socket.join(groupID);
+      console.log(`Room joined by ${username}`);
+      await addSocketsToRoom(groupID, username, socket.id);
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    unlock();
+  }
+};
 
 const leaveRoom = async (username: string, socket_id: string) => {
   const unlock = await mutex.lock();
