@@ -868,7 +868,7 @@ export const joinGroups: RequestHandler = async (
         groupId: group_joined.id,
       })
         .sort({ timeStamp: -1 })
-        .limit(10);
+        .limit(1);
 
       const group_info = {
         id: group_joined.id,
