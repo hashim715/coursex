@@ -321,23 +321,29 @@ export const getMessagesByGroup: RequestHandler = async (
   }
 };
 
-export const updateDeliverStatusOnConnection: RequestHandler = async (
+export const updateReadStatusOnConnection: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
+    const { group_id } = req.params;
+
     const token = getTokenFunc(req);
 
     const { username }: { username: string } = jwt_decode(token);
 
     await Message.updateMany(
       {
-        $or: [{ [`status.${username}`]: "sent" }],
+        groupId: parseInt(group_id),
+        $or: [
+          { [`status.${username}`]: "sent" },
+          { [`status.${username}`]: "delivered" },
+        ],
       },
       {
         $set: {
-          [`status.${username}`]: "delivered",
+          [`status.${username}`]: "read",
         },
       }
     );
@@ -387,10 +393,12 @@ export const syncUserMessagesForAllGroups: RequestHandler = async (
       const messages = await Message.find({
         groupId: group.id,
         [`status.${username}`]: "sent",
+        [`status.${username}`]: "delivered",
       }).sort({ timeStamp: -1 });
 
       await Message.updateMany(
         {
+          groupId: group.id,
           $or: [{ [`status.${username}`]: "sent" }],
         },
         {

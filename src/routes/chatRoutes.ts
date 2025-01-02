@@ -1,6 +1,6 @@
 import {
   getMessagesByGroup,
-  updateDeliverStatusOnConnection,
+  updateReadStatusOnConnection,
   syncUserMessagesForAllGroups,
 } from "../controllers/chatController";
 import express from "express";
@@ -14,7 +14,7 @@ chatRouter
   .get(protect, getMessagesByGroup);
 
 chatRouter
-  .route("/updatedeliverstatus")
-  .get(protect, updateDeliverStatusOnConnection);
+  .route("/updateMessageStatus/:group_id")
+  .get(protect, updateReadStatusOnConnection);
 
 chatRouter.route("/syncMessages").get(protect, syncUserMessagesForAllGroups);

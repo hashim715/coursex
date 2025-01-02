@@ -16,19 +16,20 @@ const get_active_users = async (usernames: Array<string>) => {
   try {
     const active_users_cache: string = await redisClient.get("active_users");
     let active_users: ActiveUsersMapType;
+    const active_users_array: Array<string> = [];
 
     if (active_users_cache) {
       active_users = DeserializeActiveUsersMap(active_users_cache);
-    }
-    const active_users_array: Array<string> = [];
-    usernames.forEach((username) => {
-      if (active_users.get(username)) {
-        active_users_array.push(username);
+      if (active_users) {
+        usernames.forEach((username) => {
+          if (active_users.get(username)) {
+            active_users_array.push(username);
+          }
+        });
       }
-    });
+    }
     return active_users_array;
   } catch (err) {
-    console.log("Error retrieving active users:", err);
     return [];
   }
 };
@@ -37,19 +38,20 @@ const get_active_room_users = async (groupId: string) => {
   try {
     const room_users_cache: string = await redisClient.get("groups");
     let room_users: GroupMapType;
+    let usernames: Array<string> = [];
 
     if (room_users_cache) {
       room_users = DeserializeGroupMap(room_users_cache);
-    }
-    let usernames: Array<string> = [];
-    if (room_users.get(groupId)) {
-      room_users.get(groupId).forEach((value, key) => {
-        usernames.push(key);
-      });
+      if (room_users) {
+        if (room_users.get(groupId)) {
+          room_users.get(groupId).forEach((value, key) => {
+            usernames.push(key);
+          });
+        }
+      }
     }
     return usernames;
   } catch (err) {
-    console.log("Error retrieving active room users:", err);
     return [];
   }
 };
@@ -154,11 +156,9 @@ const saveMessageToDB = async (message: string) => {
 
     const status = new Map<string, string>();
 
-    if (active_users) {
-      active_room_users.forEach((username) => {
-        status.set(username, "read");
-      });
-    }
+    active_room_users.forEach((username) => {
+      status.set(username, "read");
+    });
 
     active_users.forEach((username) => {
       status.set(username, "delivered");
