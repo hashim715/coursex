@@ -157,11 +157,11 @@ const saveMessageToDB = async (message: string) => {
     const status = new Map<string, string>();
 
     active_room_users.forEach((username) => {
-      status.set(username, "read");
-    });
-
-    active_users.forEach((username) => {
-      status.set(username, "delivered");
+      if (username !== parsedMessage.sender) {
+        status.set(username, "delivered");
+      } else if (username === parsedMessage.sender) {
+        status.set(username, "read");
+      }
     });
 
     if (group_members) {
