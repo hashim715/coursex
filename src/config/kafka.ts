@@ -165,6 +165,8 @@ const saveMessageToDB = async (message: string) => {
       }
     });
 
+    const non_active_users: Array<string> = [];
+
     if (group_members) {
       group_members.users.forEach((user: User) => {
         if (
@@ -172,14 +174,10 @@ const saveMessageToDB = async (message: string) => {
           !active_users.includes(user.username)
         ) {
           status.set(user.username, "sent");
+          non_active_users.push(user.username);
         }
       });
     }
-
-    const notify_users: Array<string> = [];
-    const notify_message: string = "";
-
-    await sendNotification(notify_users, notify_message);
 
     if (parsedMessage.type === "text") {
       const message_created = await Message.create({
@@ -222,42 +220,58 @@ const saveMessageToDB = async (message: string) => {
         cover_image: parsedMessage.cover_image,
       });
     }
+
+    await Promise.all(
+      non_active_users.map((username) => {
+        return sendNotification(username);
+      })
+    );
   } catch (err) {
     console.log(err);
   }
 };
 
-const sendNotification = async (usernames: string[], message: string) => {
+const sendNotification = async (username: string) => {
   try {
+    const user = await prisma.user.findFirst({
+      where: { username: username },
+      select: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+        },
+        deviceToken: true,
+      },
+    });
+
+    let total_messages = 0;
+
+    for (let group of user.groups) {
+      const messages = await Message.find({
+        groupId: group.id,
+        [`status.${username}`]: "sent",
+        [`status.${username}`]: "delivered",
+      }).sort({ timeStamp: -1 });
+
+      total_messages += messages.length;
+    }
+
     await firebase_admin.messaging().send({
-      token:
-        "fBv-Esqqtkb8uDmVSUaEO9:APA91bEpRCAyVesvlq9SITbs8kkrtWJbwYIeJ18TZJ27VIiL0ncAMizIXxFFb0OAE5C1an0ejoErEzCb7FsxrN8e5zDGOgRTUcyBabCDYEvCq7ScpD1HTbo",
+      token: user.deviceToken,
       notification: {
         title: "CourseX",
-        body: "this is a notification",
+        body: `You have recieved ${total_messages} messages from ${user.groups.length} groups`,
         imageUrl:
           "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
+      },
+      apns: {
+        headers: {
+          "apns-collapse-id": `${user.deviceToken}`,
+        },
       },
     });
   } catch (err) {
     console.log(err);
   }
-  // Fetch device tokens for the specified usernames
-  // const tokens = await prisma.user.findMany({
-  //   where: { username: { in: usernames } },
-  //   select: { deviceToken: true },
-  // });
-
-  // const deviceTokens = tokens.map((user) => user.deviceToken).filter(Boolean);
-
-  // if (deviceTokens.length > 0) {
-  //   // Use your notification service here (e.g., FCM)
-  //   await notificationService.send({
-  //     tokens: deviceTokens,
-  //     title: "New Message",
-  //     body: message,
-  //   });
-  // }
 };
 
 export const startMessageConsumer = async (): Promise<void> => {

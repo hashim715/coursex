@@ -39,6 +39,7 @@ model User {
   isbioDataUpdated Boolean @default(false)
   assistant Assistant[]
   documents Documents[]
+  deviceToken String?
 }
 
 model Group {
