@@ -144,13 +144,21 @@ export const login: RequestHandler = async (
   next: NextFunction
 ): Promise<Response> => {
   try {
-    const { email, password }: { email: string; password: string } = req.body;
+    const {
+      email,
+      password,
+      notificationToken,
+    }: { email: string; password: string; notificationToken: string } =
+      req.body;
+
     if (!email.trim() || !password.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
     }
+
     const user = await prisma.user.findFirst({ where: { email: email } });
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -166,11 +174,18 @@ export const login: RequestHandler = async (
     }
 
     const isMatch = await matchPassword(password, user.password);
+
     if (!isMatch) {
       return res
         .status(404)
         .json({ success: false, message: "Password did not match" });
     }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { deviceToken: notificationToken },
+    });
+
     await sendToken(user.username, 200, res);
   } catch (err) {
     console.log(err);
