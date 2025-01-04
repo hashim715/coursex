@@ -223,7 +223,9 @@ const saveMessageToDB = async (message: string) => {
 
     await Promise.all(
       non_active_users.map((username) => {
-        return sendNotification(username);
+        if (username === "aazarjan") {
+     return sendNotification(username);
+}
       })
     );
   } catch (err) {
@@ -243,6 +245,8 @@ const sendNotification = async (username: string) => {
       },
     });
 
+console.log(user);
+
     let total_messages = 0;
 
     for (let group of user.groups) {
@@ -256,7 +260,7 @@ const sendNotification = async (username: string) => {
     }
 
     await firebase_admin.messaging().send({
-      token: user.deviceToken,
+      token: `${user.deviceToken}`,
       notification: {
         title: "CourseX",
         body: `You have recieved ${total_messages} messages from ${user.groups.length} groups`,
@@ -265,7 +269,7 @@ const sendNotification = async (username: string) => {
       },
       apns: {
         headers: {
-          "apns-collapse-id": `${user.deviceToken}`,
+          "apns-collapse-id": `group-123`,
         },
       },
     });
