@@ -9,6 +9,7 @@ import {
 import { redisClient } from "./redisClient";
 import { prisma } from "./postgres";
 import dotenv from "dotenv";
+import { firebase_admin } from "../config/firebase";
 
 dotenv.config();
 
@@ -175,6 +176,11 @@ const saveMessageToDB = async (message: string) => {
       });
     }
 
+    const notify_users: Array<string> = [];
+    const notify_message: string = "";
+
+    await sendNotification(notify_users, notify_message);
+
     if (parsedMessage.type === "text") {
       const message_created = await Message.create({
         sender: parsedMessage.sender,
@@ -219,6 +225,39 @@ const saveMessageToDB = async (message: string) => {
   } catch (err) {
     console.log(err);
   }
+};
+
+const sendNotification = async (usernames: string[], message: string) => {
+  try {
+    await firebase_admin.messaging().send({
+      token:
+        "fBv-Esqqtkb8uDmVSUaEO9:APA91bEpRCAyVesvlq9SITbs8kkrtWJbwYIeJ18TZJ27VIiL0ncAMizIXxFFb0OAE5C1an0ejoErEzCb7FsxrN8e5zDGOgRTUcyBabCDYEvCq7ScpD1HTbo",
+      notification: {
+        title: "CourseX",
+        body: "this is a notification",
+        imageUrl:
+          "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
+      },
+    });
+  } catch (err) {
+    console.log(err);
+  }
+  // Fetch device tokens for the specified usernames
+  // const tokens = await prisma.user.findMany({
+  //   where: { username: { in: usernames } },
+  //   select: { deviceToken: true },
+  // });
+
+  // const deviceTokens = tokens.map((user) => user.deviceToken).filter(Boolean);
+
+  // if (deviceTokens.length > 0) {
+  //   // Use your notification service here (e.g., FCM)
+  //   await notificationService.send({
+  //     tokens: deviceTokens,
+  //     title: "New Message",
+  //     body: message,
+  //   });
+  // }
 };
 
 export const startMessageConsumer = async (): Promise<void> => {
