@@ -14,6 +14,7 @@ import { Message } from "../models/MessageSchema";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { client } from "../utils/sendEmail";
 import { createAssistant } from "../controllers/knowledgebaseController";
+import { io } from "./chatController";
 
 export const getTokenFunc = (req: Request) => {
   let token: string;
@@ -872,6 +873,10 @@ export const joinGroups: RequestHandler = async (
       },
     });
 
+    if (io) {
+      io.emit("group-join", { group_id: group_id, user: user });
+    }
+
     if (group_joined.type === "course") {
       return res.status(200).json({
         success: true,
@@ -1078,13 +1083,7 @@ export const getGroupAssistantName: RequestHandler = async (
         .json({ success: false, message: "No any assistant found" });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: assistant.chatbotName,
-      name: assistant.name,
-      profile: group.image,
-      assistantId: assistant.id,
-    });
+    return res.status(200).json({ success: true, message: assistant });
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -1153,6 +1152,10 @@ export const editProfileInfo: RequestHandler = async (
         isbioDataUpdated: true,
       },
     });
+
+    if (io) {
+      io.emit("group-leave", { user: user, profile_pic: profile_image });
+    }
 
     return res
       .status(200)
@@ -1344,6 +1347,10 @@ export const leavethegroup = async (
       }
 
       await redisClient.setEx("recent-groups", 1800, JSON.stringify(groups_));
+    }
+
+    if (io) {
+      io.emit("group-leave", { group_id: group_id, user: user });
     }
 
     return res
@@ -1677,6 +1684,46 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
     return res
       .status(200)
       .json({ success: true, message: "User profile updated successfully" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const syncGroupDetailsDataWhenOffline: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const groups = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        groups: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            users: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({ success: true, message: groups.groups });
   } catch (err) {
     if (!res.headersSent) {
       return res

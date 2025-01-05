@@ -36,11 +36,13 @@ type Messages = {
   status: Map<string, string>;
 };
 
+export let io: Server | null = null;
+
 export const chatController = async (
   app: Application,
   server: http.Server
 ): Promise<void> => {
-  const io = new Server(server, {
+  io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
     adapter: createAdapter(redispubsubClient),
   });
@@ -49,6 +51,20 @@ export const chatController = async (
     socket.on("join-room", async (data) => {
       if (data.username) {
         await joinRoom(data.username, socket);
+      }
+    });
+
+    socket.on("join-single-room", async (data) => {
+      if (data.username && data.group_id) {
+        const groupID = data.group_id.toString();
+        await addSocketsToRoom(groupID, data.username, socket.id);
+      }
+    });
+
+    socket.on("leave-single-room", async (data) => {
+      if (data.username && data.group_id) {
+        const groupID = data.group_id.toString();
+        await RemoveFromGroupRoomMap(groupID, data.username, socket.id);
       }
     });
 

@@ -223,9 +223,7 @@ const saveMessageToDB = async (message: string) => {
 
     await Promise.all(
       non_active_users.map((username) => {
-        if (username === "aazarjan") {
-     return sendNotification(username);
-}
+        return sendNotification(username);
       })
     );
   } catch (err) {
@@ -245,10 +243,6 @@ const sendNotification = async (username: string) => {
       },
     });
 
-console.log(user);
-
-    let total_messages = 0;
-
     for (let group of user.groups) {
       const messages = await Message.find({
         groupId: group.id,
@@ -256,26 +250,24 @@ console.log(user);
         [`status.${username}`]: "delivered",
       }).sort({ timeStamp: -1 });
 
-      total_messages += messages.length;
+      if (messages.length > 0) {
+        await firebase_admin.messaging().send({
+          token: `${user.deviceToken}`,
+          notification: {
+            title: "CourseX",
+            body: `You have recieved ${messages.length} messages from ${group.name} groups`,
+            imageUrl:
+              "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
+          },
+          apns: {
+            headers: {
+              "apns-collapse-id": `${username}`,
+            },
+          },
+        });
+      }
     }
-
-    await firebase_admin.messaging().send({
-      token: `${user.deviceToken}`,
-      notification: {
-        title: "CourseX",
-        body: `You have recieved ${total_messages} messages from ${user.groups.length} groups`,
-        imageUrl:
-          "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
-      },
-      apns: {
-        headers: {
-          "apns-collapse-id": `group-123`,
-        },
-      },
-    });
-  } catch (err) {
-    console.log(err);
-  }
+  } catch (err) {}
 };
 
 export const startMessageConsumer = async (): Promise<void> => {
