@@ -196,7 +196,7 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>http://192.168.100.16:5000/api/user/redirectUserToVerification/${email}/forgot</a></p>`,
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/forgot</a></p>`,
     });
 
     return res
@@ -259,7 +259,7 @@ export const sendVerifiCationCode: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>http://192.168.100.16:5000/api/user/redirectUserToVerification/${email}/verify</a></p>`,
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
     });
 
     return res

@@ -28,6 +28,7 @@ import {
   redirectUserToVerification,
   getUserAssistantName,
   getGroupAssistantName,
+  syncGroupDetailsDataWhenOffline,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -101,3 +102,7 @@ userRouter
   .get(protect, getGroupAssistantName);
 
 userRouter.route("/createNonCourseGroup").post(protect, createNonCourseGroup);
+
+userRouter
+  .route("/syncGroupDetailsDataWhenOffline")
+  .get(protect, syncGroupDetailsDataWhenOffline);
