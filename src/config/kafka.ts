@@ -259,11 +259,11 @@ const sendNotification = async (username: string) => {
             imageUrl:
               "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
           },
-          apns: {
-            headers: {
-              "apns-collapse-id": `${username}`,
-            },
-          },
+          // apns: {
+          //   headers: {
+          //     "apns-collapse-id": `${username}`,
+          //   },
+          // },
         });
       }
     }
