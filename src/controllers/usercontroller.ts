@@ -273,30 +273,16 @@ export const createGroup: RequestHandler = async (
       });
     }
 
-    let group;
-    if (image) {
-      group = await prisma.group.create({
-        data: {
-          name: name,
-          college: college,
-          description: description,
-          admins: [user.id],
-          image: image,
-          type: type,
-        },
-      });
-    } else {
-      group = await prisma.group.create({
-        data: {
-          name: name,
-          college: college,
-          description: description,
-          admins: [user.id],
-          type: type,
-          theme: theme,
-        },
-      });
-    }
+    const group = await prisma.group.create({
+      data: {
+        name: name,
+        college: college,
+        description: description,
+        admins: [user.id],
+        type: type,
+        theme: theme,
+      },
+    });
 
     await prisma.assistant.create({
       data: {
@@ -369,33 +355,11 @@ export const createGroup: RequestHandler = async (
       },
     });
 
-    if (group_created.type === "course") {
-      return res.status(200).json({
-        success: true,
-        message: "Group created successfully",
-        group: group_created,
-      });
-    } else {
-      const group_info = {
-        id: group_created.id,
-        name: group_created.name,
-        image: group_created.image,
-        admins: group_created.admins,
-        college: group_created.college,
-        description: group_created.description,
-        createdAt: group_created.createdAt,
-        updatedAt: group_created.updatedAt,
-        recent_message: "No messages",
-        theme: group_created.theme,
-        type: group_created.type,
-        sender: null as string | null,
-      };
-      return res.status(200).json({
-        success: true,
-        message: "Group created successfully",
-        group: group_info,
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Group created successfully",
+      group: group_created,
+    });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
@@ -437,30 +401,16 @@ export const createNonCourseGroup: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
-    let group;
-    if (image) {
-      group = await prisma.group.create({
-        data: {
-          name: name,
-          college: college,
-          description: description,
-          admins: [user.id],
-          image: image,
-          type: type,
-        },
-      });
-    } else {
-      group = await prisma.group.create({
-        data: {
-          name: name,
-          college: college,
-          description: description,
-          admins: [user.id],
-          type: type,
-          theme: theme,
-        },
-      });
-    }
+    const group = await prisma.group.create({
+      data: {
+        name: name,
+        college: college,
+        description: description,
+        admins: [user.id],
+        image: image,
+        type: type,
+      },
+    });
 
     await prisma.user.update({
       where: { id: user.id },
@@ -524,33 +474,26 @@ export const createNonCourseGroup: RequestHandler = async (
       },
     });
 
-    if (group_created.type === "course") {
-      return res.status(200).json({
-        success: true,
-        message: "Group created successfully",
-        group: group_created,
-      });
-    } else {
-      const group_info = {
-        id: group_created.id,
-        name: group_created.name,
-        image: group_created.image,
-        admins: group_created.admins,
-        college: group_created.college,
-        description: group_created.description,
-        createdAt: group_created.createdAt,
-        updatedAt: group_created.updatedAt,
-        recent_message: "No messages",
-        theme: group_created.theme,
-        type: group_created.type,
-        sender: null as string | null,
-      };
-      return res.status(200).json({
-        success: true,
-        message: "Group created successfully",
-        group: group_info,
-      });
-    }
+    const group_info = {
+      id: group_created.id,
+      name: group_created.name,
+      image: group_created.image,
+      admins: group_created.admins,
+      college: group_created.college,
+      description: group_created.description,
+      createdAt: group_created.createdAt,
+      updatedAt: group_created.updatedAt,
+      recent_message: "No messages",
+      theme: group_created.theme,
+      type: group_created.type,
+      sender: null as string | null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Group created successfully",
+      group: group_info,
+    });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
