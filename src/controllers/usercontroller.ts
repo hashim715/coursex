@@ -529,6 +529,7 @@ export const getGroupsByUser: RequestHandler = async (
           orderBy: { createdAt: "desc" },
           where: { type: "course" },
           include: {
+            users: true,
             _count: {
               select: {
                 users: true,
@@ -573,11 +574,14 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
         groups: {
           orderBy: { createdAt: "desc" },
           where: { type: "non-course" },
+          include: {
+            users: true,
+          },
         },
       },
     });
 
-    const groups_: Array<DefaultGroupType> = groups.groups;
+    const groups_: Array<any> = groups.groups;
 
     const filteredGroups: Array<any> = [];
 
@@ -606,6 +610,7 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
         theme: group.theme,
         type: group.type,
         sender: messages.length > 0 ? messages[0].sender : null,
+        users: group.users,
       };
       filteredGroups.push(group_data);
     }
