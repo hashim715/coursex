@@ -467,6 +467,7 @@ export const createNonCourseGroup: RequestHandler = async (
     let group_created = await prisma.group.findUnique({
       where: { id: group.id },
       include: {
+        users: true,
         _count: {
           select: {
             users: true,
@@ -488,6 +489,7 @@ export const createNonCourseGroup: RequestHandler = async (
       theme: group_created.theme,
       type: group_created.type,
       sender: null as string | null,
+      users: group_created.users,
     };
 
     return res.status(200).json({
