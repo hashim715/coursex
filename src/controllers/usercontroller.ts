@@ -347,6 +347,7 @@ export const createGroup: RequestHandler = async (
     let group_created = await prisma.group.findUnique({
       where: { id: group.id },
       include: {
+        users: true,
         _count: {
           select: {
             users: true,
