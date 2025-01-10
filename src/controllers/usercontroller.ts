@@ -1107,7 +1107,7 @@ export const editProfileInfo: RequestHandler = async (
     });
 
     if (io) {
-      io.emit("group-leave", { user: user, profile_pic: profile_image });
+      io.emit("profile-change", { user: user, profile_pic: profile_image });
     }
 
     return res
