@@ -1579,9 +1579,7 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
       !year.trim() ||
       !major.trim() ||
       !profile_image.trim() ||
-      !token.trim() ||
-      !assistantName.trim() ||
-      !assistantInstruction.trim()
+      !token.trim()
     ) {
       return res
         .status(400)
@@ -1598,29 +1596,29 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
-    const prefix = Date.now();
-    const uniqueAssistantName = `${prefix}-assistant`;
+    // const prefix = Date.now();
+    // const uniqueAssistantName = `${prefix}-assistant`;
 
-    const assistantData = await createAssistant(
-      uniqueAssistantName,
-      assistantInstruction
-    );
+    // const assistantData = await createAssistant(
+    //   uniqueAssistantName,
+    //   assistantInstruction
+    // );
 
-    if (assistantData.error) {
-      return res.status(400).json({
-        success: false,
-        message: assistantData.message,
-      });
-    }
+    // if (assistantData.error) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: assistantData.message,
+    //   });
+    // }
 
-    await prisma.assistant.create({
-      data: {
-        name: assistantName,
-        instructions: assistantData.instructions,
-        user_id: user.id,
-        chatbotName: uniqueAssistantName,
-      },
-    });
+    // await prisma.assistant.create({
+    //   data: {
+    //     name: assistantName,
+    //     instructions: assistantData.instructions,
+    //     user_id: user.id,
+    //     chatbotName: uniqueAssistantName,
+    //   },
+    // });
 
     await prisma.user.update({
       where: { id: user.id },
