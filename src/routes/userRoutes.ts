@@ -29,6 +29,7 @@ import {
   getUserAssistantName,
   getGroupAssistantName,
   syncGroupDetailsDataWhenOffline,
+  deleteAccount,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -106,3 +107,5 @@ userRouter.route("/createNonCourseGroup").post(protect, createNonCourseGroup);
 userRouter
   .route("/syncGroupDetailsDataWhenOffline")
   .get(protect, syncGroupDetailsDataWhenOffline);
+
+userRouter.route("/deleteUser").post(protect, deleteAccount);
