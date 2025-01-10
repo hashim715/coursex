@@ -58,6 +58,7 @@ export const chatController = async (
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
         await addSocketsToRoom(groupID, data.username, socket.id);
+        console.log(`join single room by ${data.username}`);
       }
     });
 
@@ -65,6 +66,7 @@ export const chatController = async (
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
         await RemoveFromGroupRoomMap(groupID, data.username, socket.id);
+        console.log(`left single room by ${data.username}`);
       }
     });
 
