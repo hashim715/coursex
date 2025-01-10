@@ -813,6 +813,7 @@ export const joinGroups: RequestHandler = async (
     let group_joined = await prisma.group.findUnique({
       where: { id: group.id },
       include: {
+        users: true,
         _count: {
           select: {
             users: true,
@@ -852,6 +853,7 @@ export const joinGroups: RequestHandler = async (
         theme: group_joined.theme,
         type: group_joined.type,
         sender: messages.length > 0 ? messages[0].sender : null,
+        users: group_joined.users,
       };
       return res.status(200).json({
         success: true,
