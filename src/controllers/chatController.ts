@@ -55,6 +55,7 @@ export const chatController = async (
     });
 
     socket.on("join-single-room", async (data) => {
+      console.log(data);
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
         await addSocketsToRoom(groupID, data.username, socket.id);
