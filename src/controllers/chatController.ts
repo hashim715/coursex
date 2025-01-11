@@ -409,6 +409,7 @@ export const syncUserMessagesForAllGroups: RequestHandler = async (
       const messages = await Message.find({
         groupId: group.id,
         [`status.${username}`]: "sent",
+        [`status.${username}`]: "delivered",
       }).sort({ timeStamp: -1 });
 
       await Message.updateMany(
