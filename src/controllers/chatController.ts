@@ -402,7 +402,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       },
     });
 
-    const groupIds = groups.groups.map((group) => group.id);
+    const groupIds = groups.groups.map((group: any) => group.id);
 
     const metadata = await Message.aggregate([
       {
@@ -422,7 +422,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       },
     ]);
 
-    const combinedMetadata = groups.groups.map((group) => {
+    const combinedMetadata = groups.groups.map((group: any) => {
       const mongoData = metadata.find((meta) => meta._id === group.id) || {
         unreadCount: 0,
       };
