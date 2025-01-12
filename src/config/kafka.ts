@@ -222,8 +222,8 @@ const saveMessageToDB = async (message: string) => {
     }
 
     await Promise.all(
-      non_active_users.map((username) => {
-        return sendNotification(username);
+      group_members.users.map((user: any) => {
+        return sendNotification(user.username, parseInt(parsedMessage.groupID));
       })
     );
   } catch (err) {
@@ -231,41 +231,46 @@ const saveMessageToDB = async (message: string) => {
   }
 };
 
-const sendNotification = async (username: string) => {
+const sendNotification = async (username: string, group_id: number) => {
   try {
     const user = await prisma.user.findFirst({
       where: { username: username },
       select: {
-        groups: {
-          orderBy: { createdAt: "desc" },
-        },
         deviceToken: true,
       },
     });
 
-    for (let group of user.groups) {
-      const messages = await Message.find({
-        groupId: group.id,
-        [`status.${username}`]: "sent",
-        [`status.${username}`]: "delivered",
-      }).sort({ timeStamp: -1 });
+    if (!user) {
+      return;
+    }
 
-      if (messages.length > 0) {
-        await firebase_admin.messaging().send({
-          token: `${user.deviceToken}`,
-          notification: {
-            title: "CourseX",
-            body: `You have recieved ${messages.length} messages from ${group.name} groups`,
-            imageUrl:
-              "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
+    const group = await prisma.group.findUnique({ where: { id: group_id } });
+
+    if (!group) {
+      return;
+    }
+
+    const messages = await Message.find({
+      groupId: group.id,
+      [`status.${username}`]: "sent",
+      [`status.${username}`]: "delivered",
+    }).sort({ timeStamp: -1 });
+
+    if (messages.length > 0) {
+      await firebase_admin.messaging().send({
+        token: `${user.deviceToken}`,
+        notification: {
+          title: "CourseX",
+          body: `You have recieved ${messages.length} messages from ${group.name}`,
+          imageUrl:
+            "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
+        },
+        apns: {
+          headers: {
+            "apns-collapse-id": `${group.id}`,
           },
-          // apns: {
-          //   headers: {
-          //     "apns-collapse-id": `${group.id}`,
-          //   },
-          // },
-        });
-      }
+        },
+      });
     }
   } catch (err) {}
 };
