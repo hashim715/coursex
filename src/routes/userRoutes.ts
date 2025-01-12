@@ -30,6 +30,7 @@ import {
   getGroupAssistantName,
   syncGroupDetailsDataWhenOffline,
   deleteAccount,
+  blockUser,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -109,3 +110,5 @@ userRouter
   .get(protect, syncGroupDetailsDataWhenOffline);
 
 userRouter.route("/deleteUser").post(protect, deleteAccount);
+
+userRouter.route("/blockUser").post(protect, blockUser);

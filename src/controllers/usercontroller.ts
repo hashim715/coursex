@@ -1715,3 +1715,54 @@ export const deleteAccount: RequestHandler = async (
     }
   }
 };
+
+export const blockUser: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { blocked_username }: { blocked_username: string } = req.body;
+
+    if (!blocked_username.trim()) {
+      return res
+        .status(400)
+        .json({ success: true, message: "Please provide valid inputs" });
+    }
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const blocked_user = await prisma.user.findFirst({
+      where: { username: blocked_username },
+    });
+
+    if (!blocked_user) {
+      return res.status(404).json({ success: true, message: "User not found" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { blocked_users: [...user.blocked_users, blocked_username] },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User blocked successfully" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
