@@ -55,7 +55,6 @@ export const chatController = async (
     });
 
     socket.on("join-single-room", async (data) => {
-      console.log(data);
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
         await addSocketsToRoom(groupID, data.username, socket.id);
@@ -376,7 +375,7 @@ export const updateReadStatusOnConnection: RequestHandler = async (
   }
 };
 
-export const syncUserMessagesForAllGroups: RequestHandler = async (
+export const syncUserMetadataForAllGroups: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -403,37 +402,96 @@ export const syncUserMessagesForAllGroups: RequestHandler = async (
       },
     });
 
-    const filteredGroups: Array<any> = [];
+    const groupIds = groups.groups.map((group) => group.id);
 
-    for (let group of groups.groups) {
-      const messages = await Message.find({
+    const metadata = await Message.aggregate([
+      {
+        $match: {
+          groupId: { $in: groupIds },
+          $or: [
+            { [`status.${username}`]: "sent" },
+            { [`status.${username}`]: "delivered" },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "$groupId",
+          unreadCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const combinedMetadata = groups.groups.map((group) => {
+      const mongoData = metadata.find((meta) => meta._id === group.id) || {
+        unreadCount: 0,
+      };
+
+      return {
         groupId: group.id,
+        groupName: group.name,
+        unreadCount: mongoData.unreadCount,
+      };
+    });
+
+    await Message.updateMany(
+      {
+        groupId: { $in: groupIds },
+        $or: [{ [`status.${username}`]: "sent" }],
+      },
+      {
+        $set: {
+          [`status.${username}`]: "delivered",
+        },
+      }
+    );
+
+    return res.status(200).json({ success: true, message: combinedMetadata });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const syncUserMessagesForaSingleGroup = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { group_id } = req.params;
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const messages = await Message.find({
+      groupId: parseInt(group_id),
+      $or: [
+        { [`status.${username}`]: "sent" },
+        { [`status.${username}`]: "delivered" },
+      ],
+    }).sort({ timeStamp: -1 });
+
+    await Message.updateMany(
+      {
+        groupId: parseInt(group_id),
         $or: [
           { [`status.${username}`]: "sent" },
           { [`status.${username}`]: "delivered" },
         ],
-      }).sort({ timeStamp: -1 });
-
-      await Message.updateMany(
-        {
-          groupId: group.id,
-          $or: [{ [`status.${username}`]: "sent" }],
+      },
+      {
+        $set: {
+          [`status.${username}`]: "read",
         },
-        {
-          $set: {
-            [`status.${username}`]: "delivered",
-          },
-        }
-      );
+      }
+    );
 
-      const group_data = {
-        ...group,
-        messages: messages,
-      };
-      filteredGroups.push(group_data);
-    }
-
-    return res.status(200).json({ success: true, message: filteredGroups });
+    return res.status(200).json({ success: true, message: messages });
   } catch (err) {
     if (!res.headersSent) {
       return res
