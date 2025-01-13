@@ -413,9 +413,13 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         },
       },
       {
+        $sort: { timeStamp: -1 },
+      },
+      {
         $group: {
           _id: "$groupId",
           unreadCount: { $sum: 1 },
+          recentMessage: { $first: "$$ROOT" },
         },
       },
     ]);
@@ -423,12 +427,13 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
     const combinedMetadata = groups.groups.map((group: any) => {
       const mongoData = metadata.find((meta) => meta._id === group.id) || {
         unreadCount: 0,
+        recentMessage: "No Messages",
       };
 
       return {
-        groupId: group.id,
-        groupName: group.name,
+        group: group,
         unreadCount: mongoData.unreadCount,
+        recentMessage: mongoData.recentMessage,
       };
     });
 
