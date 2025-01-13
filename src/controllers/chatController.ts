@@ -396,6 +396,14 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       select: {
         groups: {
           orderBy: { createdAt: "desc" },
+          include: {
+            users: true,
+            _count: {
+              select: {
+                users: true,
+              },
+            },
+          },
         },
       },
     });
