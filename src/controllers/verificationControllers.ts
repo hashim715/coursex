@@ -196,7 +196,7 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
   From: process.env.EMAIL_FROM,
   To: email,
   Subject: "Verify your Email",
-  TextBody: `
+  HtmlBody: `
     <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
@@ -214,6 +214,7 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
     </html>
   `,
 });
+
 
 
     return res
@@ -276,7 +277,7 @@ export const sendVerifiCationCode: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      TextBody: `
+      HtmlBody: `
         <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
@@ -369,7 +370,7 @@ export const forgotPassword: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Password Reset",
-      TextBody: `<h1>Your password is reset</h1>`,
+      HtmlBody: `<h1>Your password is reset</h1>`,
     });
 
     return res
@@ -394,7 +395,7 @@ export const testSendingEmail: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: process.env.EMAIL_FROM,
       Subject: "Test",
-      TextBody: "<h1>Hello from Postmark!</h1>",
+      HtmlBody: "<h1>Hello from Postmark!</h1>",
     });
     return res.status(200).json({ success: true, message: "Email Sent" });
   } catch (err) {
