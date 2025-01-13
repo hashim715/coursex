@@ -198,7 +198,7 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      HtmlBody: `
+      TextBody: `
     <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
@@ -277,7 +277,7 @@ export const sendVerifiCationCode: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      HtmlBody: `
+      TextBody: `
         <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
