@@ -198,29 +198,14 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      TextBody: `
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
-          <h1 style="text-align: center; color: #4CAF50;">Verify Your Email</h1>
-          <p style="font-size: 16px;">Hello,</p>
-          <p style="font-size: 16px;">To complete your password changing, please verify your email address by using the verification code below:</p>
-          <h2 style="font-size: 24px; font-weight: bold; color: #333; text-align: center;">${code}</h2>
-          <p style="font-size: 16px;">Alternatively, click on the link below to verify your email:</p>
-          <p style="text-align: center;">
-            <a href="https://coursex.us/app/verification/${email}/forgot" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
-          </p>
-          <p style="font-size: 14px; color: #777;">If you did not request this verification, please ignore this email.</p>
-        </div>
-      </body>
-    </html>
-  `,
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/forgot</a></p>`,
     });
 
     return res
       .status(200)
       .json({ success: true, message: "Verification Email sent successfully" });
   } catch (err) {
+    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
@@ -277,23 +262,7 @@ export const sendVerifiCationCode: RequestHandler = async (
       From: process.env.EMAIL_FROM,
       To: email,
       Subject: "Verify your Email",
-      TextBody: `
-        <html>
-      <body style="font-family: Arial, sans-serif; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
-          <h1 style="text-align: center; color: #4CAF50;">Verify Your Email</h1>
-          <p style="font-size: 16px;">Hello,</p>
-          <p style="font-size: 16px;">Thank you for registering. To complete your the registration, please verify your email address by using the verification code below:</p>
-          <h2 style="font-size: 24px; font-weight: bold; color: #333; text-align: center;">${code}</h2>
-          <p style="font-size: 16px;">Alternatively, click on the link below to verify your email:</p>
-          <p style="text-align: center;">
-            <a href="https://coursex.us/app/verification/${email}/verify" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
-          </p>
-          <p style="font-size: 14px; color: #777;">If you did not request this verification, please ignore this email.</p>
-        </div>
-      </body>
-    </html>
-      `,
+      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
     });
 
     return res
