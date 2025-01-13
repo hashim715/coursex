@@ -589,6 +589,12 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
     const filteredGroups: Array<any> = [];
 
     for (let group of groups_) {
+      const messages = await Message.find({
+        groupId: group.id,
+      })
+        .sort({ timeStamp: -1 })
+        .limit(1);
+
       const group_data = {
         id: group.id,
         name: group.name,
@@ -598,10 +604,15 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
         description: group.description,
         createdAt: group.createdAt,
         updatedAt: group.updatedAt,
-        recent_message: "Loading...",
-        sender: "",
+        recent_message:
+          messages.length > 0
+            ? messages[0].type === "text"
+              ? messages[0].message
+              : messages[0].type
+            : "No messages",
         theme: group.theme,
         type: group.type,
+        sender: messages.length > 0 ? messages[0].sender : null,
         users: group.users,
       };
       filteredGroups.push(group_data);
