@@ -6,6 +6,8 @@ import { sendToken } from "../utils/sendToken";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { validateEmail } from "../utils/checkvalidemail";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
+import { google } from "googleapis";
 
 export const verifyEmail: RequestHandler = async (
   req: Request,
@@ -193,10 +195,10 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
     });
 
     await client.sendEmail({
-  From: process.env.EMAIL_FROM,
-  To: email,
-  Subject: "Verify your Email",
-  HtmlBody: `
+      From: process.env.EMAIL_FROM,
+      To: email,
+      Subject: "Verify your Email",
+      TextBody: `
     <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
@@ -213,9 +215,7 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
       </body>
     </html>
   `,
-});
-
-
+    });
 
     return res
       .status(200)
@@ -391,12 +391,36 @@ export const testSendingEmail: RequestHandler = async (
   next: NextFunction
 ) => {
   try {
-    await client.sendEmail({
-      From: process.env.EMAIL_FROM,
-      To: process.env.EMAIL_FROM,
-      Subject: "Test",
-      HtmlBody: "<h1>Hello from Postmark!</h1>",
+    const oauth2Client = new google.auth.OAuth2(
+      "YOUR_CLIENT_ID",
+      "YOUR_CLIENT_SECRET",
+      "https://login.microsoftonline.com/common/oauth2/nativeclient"
+    );
+
+    const { token } = await oauth2Client.getAccessToken();
+
+    console.log(token);
+
+    let transporter = nodemailer.createTransport({
+      service: "Outlook365",
+      auth: {
+        type: "OAuth2",
+        user: "your-email@outlook.com",
+        clientId: "YOUR_CLIENT_ID",
+        clientSecret: "YOUR_CLIENT_SECRET",
+        refreshToken: "YOUR_REFRESH_TOKEN",
+        accessToken: token, // Access token generated
+      },
     });
+
+    let info = await transporter.sendMail({
+      from: '"Your Name" <your-email@outlook.com>',
+      to: "recipient@example.com",
+      subject: "Hello",
+      text: "Hello world!",
+      html: "<b>Hello world!</b>",
+    });
+
     return res.status(200).json({ success: true, message: "Email Sent" });
   } catch (err) {
     console.log(err);
