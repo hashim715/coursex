@@ -272,7 +272,9 @@ const sendNotification = async (username: string, group_id: number) => {
         },
       });
     }
-  } catch (err) {}
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 export const startMessageConsumer = async (): Promise<void> => {
