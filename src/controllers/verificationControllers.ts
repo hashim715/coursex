@@ -1,13 +1,41 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { prisma } from "../config/postgres";
 import crypto from "crypto";
-import { client } from "../utils/sendEmail";
+import { email_transporter } from "../utils/sendEmail";
 import { sendToken } from "../utils/sendToken";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { validateEmail } from "../utils/checkvalidemail";
 import bcrypt from "bcrypt";
-// import nodemailer from "nodemailer";
-// import { google } from "googleapis";
+import nodemailer from "nodemailer";
+import axios from "axios";
+
+const getToken = async () => {
+  try {
+    const response = await axios.post(
+      "https://login.microsoftonline.com/4b6ea646-aa76-44a9-b5d3-caebf4153556/oauth2/v2.0/token",
+      new URLSearchParams({
+        client_id: "9515492b-8800-445a-a4aa-6df4b6684ead",
+        scope: "offline_access Mail.Send",
+        code: "1.AWEBRqZuS3aqqUS108rr9BU1VitJFZUAiFpEpKpt9LZoTq1iAQBhAQ.AgABBAIAAABVrSpeuWamRam2jAF1XRQEAwDs_wUA9P-L_BDj8LQhD_TxDg9LNCf7yXKSQr2mjBWM6vgA78H2f3-a9Mq3ztCtAGBoQ_IrcszCS3ajeMR59aZhde85HB03C5CvAv64NLxrmAQcnwqRrgWn6olVwlnoblK2lMXH3LQA7M1Gnt5fbcfze_TrHAls5utR2sxQV-MoVllty671Jqrm2hrcGbbH0LI3wVoLiQNS7s4kzHKfRpCV2O542CIWLj61Tb5izIE2DWKgJOjHXavcXxQyNgEfO84bWVCNake6cqmGiq9vvZuP7WXTzuB-ueodGrrFqDCvrpRuHMv61GkrwGhsefnnZeFpsL59WhFCs8dc2rPDCLdyTh7-EtqH5TcGponuMXNc5ZIy05b-kFCr39_dplujLkQh7SFiOTSsl4LPzTgDvXJ6TOw_f0DUUgdNpqp5_yMOQnuN4-i9VFZOSw-f4dIBaF0lgc3alRJ51ozFLGxNvwDXaeP5VvS5lOvNlrOLBdeAOrBsMeKRshBmXHNuVkHiVvkDXJcBEHs30COjaoUzzpal346a7_FnRzQU1nWl2xkDECKSphmSqULz3BIVTbTcd1OusVHr56AuDuYbYww6TXdirQd-uG5fVbom6r-hwBU0MtELoMGzRwTS9gy80PG1J-7ii7TKRZ-GOCW0AeYLm94O7HdxBE5QUuaVoEhtyqkTdujfgWT2g7MJrxCrMrKsynXrfAGEveSF2MfwakGa-fSg4rdvZiyPkOmA9ItRIKJq99OjxgiPqPPJj280_xRRCiJJmUBdLxboN9SFAYLU2erlw99vU-YXYA90PjTBBWX98fRiIFgOwe6fO-T8T-NF6HW2KbdgyZ0_eN2phm9Yz5-zsZnjqzaQVzkeZVKHn6HmPO0-CyUvWs3UtCWgHlUdpwFDmHGT_dILA5jMd3Rdnn6V3VQxm27_8epShSinlHP1CjbiwU58kuYjexnYEqtXfapf5w0_Ac04ptWxjIcHtfoWfbDRnFG3RPLQLW8HlkO9gsbSjxBgWs21fNoyLTMSKcaAMsk",
+        redirect_uri: "http://localhost:5000/api/verify/redirect",
+        grant_type: "authorization_code",
+        client_secret: "Wyx8Q~f5G0T8kJ_ea~kU58HbIK3gAhkQOg0VLddB",
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    console.log("Access Token Response:", response.data);
+  } catch (error) {
+    console.error(
+      "Error fetching access token:",
+      error.response?.data || error.message
+    );
+  }
+};
 
 export const verifyEmail: RequestHandler = async (
   req: Request,
@@ -56,12 +84,15 @@ export const verifyEmail: RequestHandler = async (
       });
     }
 
-    await client.sendEmail({
-      From: process.env.EMAIL_FROM,
-      To: email,
-      Subject: "Verify your Email",
-      TextBody: `<h1>Your email verified successfully</h1>`,
-    });
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your email verified successfully</h1>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
 
     await prisma.user.update({
       where: { email: email },
@@ -194,12 +225,15 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
       },
     });
 
-    await client.sendEmail({
-      From: process.env.EMAIL_FROM,
-      To: email,
-      Subject: "Verify your Email",
-      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/forgot</a></p>`,
-    });
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/forgot</a></p>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
 
     return res
       .status(200)
@@ -258,12 +292,15 @@ export const sendVerifiCationCode: RequestHandler = async (
       },
     });
 
-    await client.sendEmail({
-      From: process.env.EMAIL_FROM,
-      To: email,
-      Subject: "Verify your Email",
-      TextBody: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
-    });
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
 
     return res
       .status(200)
@@ -335,16 +372,38 @@ export const forgotPassword: RequestHandler = async (
       },
     });
 
-    await client.sendEmail({
-      From: process.env.EMAIL_FROM,
-      To: email,
-      Subject: "Password Reset",
-      HtmlBody: `<h1>Your password is reset</h1>`,
-    });
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your password is reset</h1>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
 
     return res
       .status(200)
       .json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const redirectUri: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const credentials = req.query;
+    console.log(credentials);
+
+    return res.status(200).json({ success: true, message: "good to see you" });
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -360,35 +419,28 @@ export const testSendingEmail: RequestHandler = async (
   next: NextFunction
 ) => {
   try {
-    // const oauth2Client = new google.auth.OAuth2(
-    //   "YOUR_CLIENT_ID",
-    //   "YOUR_CLIENT_SECRET",
-    //   "https://login.microsoftonline.com/common/oauth2/nativeclient"
-    // );
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_FROM,
+        pass: process.env.APP_PASSWORD,
+      },
+    });
 
-    // const { token } = await oauth2Client.getAccessToken();
+    const mailOptions = {
+      from: "coursex.us@gmail.com",
+      to: "hashimmuhammad844@gmail.com",
+      subject: "Hello from CourseX",
+      text: "This is a test email sent using Nodemailer!",
+      html: "<p>This is a test email sent using <b>Nodemailer</b>!</p>",
+    };
 
-    // console.log(token);
-
-    // let transporter = nodemailer.createTransport({
-    //   service: "Outlook365",
-    //   auth: {
-    //     type: "OAuth2",
-    //     user: "your-email@outlook.com",
-    //     clientId: "YOUR_CLIENT_ID",
-    //     clientSecret: "YOUR_CLIENT_SECRET",
-    //     refreshToken: "YOUR_REFRESH_TOKEN",
-    //     accessToken: token, // Access token generated
-    //   },
-    // });
-
-    // let info = await transporter.sendMail({
-    //   from: '"Your Name" <your-email@outlook.com>',
-    //   to: "recipient@example.com",
-    //   subject: "Hello",
-    //   text: "Hello world!",
-    //   html: "<b>Hello world!</b>",
-    // });
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return console.error("Error while sending email:", error);
+      }
+      console.log("Email sent successfully:", info.response);
+    });
 
     return res.status(200).json({ success: true, message: "Email Sent" });
   } catch (err) {

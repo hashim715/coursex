@@ -1,7 +1,11 @@
-import * as postmark from "postmark";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 dotenv.config();
 
-export const client = new postmark.ServerClient(
-  `${process.env.EMAIL_USERNAME}`
-);
+export const email_transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_FROM,
+    pass: process.env.APP_PASSWORD,
+  },
+});

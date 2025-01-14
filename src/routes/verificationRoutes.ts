@@ -7,6 +7,7 @@ import {
   forgotPassword,
   verifyForgotPasswordEmail,
   sendVerificationCodeforForgotPassword,
+  redirectUri,
 } from "../controllers/verificationControllers";
 
 export const verificationRouter: Router = express.Router();
@@ -21,3 +22,4 @@ verificationRouter
 verificationRouter
   .route("/sendForgotPasswordEmail")
   .post(sendVerificationCodeforForgotPassword);
+verificationRouter.route("/redirect").get(redirectUri);

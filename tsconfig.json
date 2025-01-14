@@ -6,7 +6,8 @@
     "sourceMap": true,
     "target": "ES2017",
     "resolveJsonModule": true,
-    "noImplicitAny": true /* Skip type checking all .d.ts files. */
+    "noImplicitAny": true
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*"],
+  "exclude": ["node_modules"]
 }
