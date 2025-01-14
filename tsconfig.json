@@ -5,7 +5,9 @@
     "outDir": "dist",
     "sourceMap": true,
     "target": "ES2017",
-    "noImplicitAny": true /* Skip type checking all .d.ts files. */
+    "resolveJsonModule": true,
+    "noImplicitAny": true
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*"],
+  "exclude": ["node_modules"]
 }
