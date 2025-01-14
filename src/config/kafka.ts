@@ -259,7 +259,7 @@ const sendNotification = async (username: string, group_id: number) => {
     if (messages.length > 0) {
       await firebase_admin.messaging().send({
         token: `${user.deviceToken}`,
-        data: {
+        notification: {
           title: "CourseX",
           body: `You have recieved ${messages.length} messages from ${group.name}`,
           imageUrl:
