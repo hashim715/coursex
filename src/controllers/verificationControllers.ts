@@ -428,7 +428,7 @@ export const testSendingEmail: RequestHandler = async (
     });
 
     const mailOptions = {
-      from: "coursex.us@gmail.com",
+      from: process.env.EMAIL_FROM,
       to: "hashimmuhammad844@gmail.com",
       subject: "Hello from CourseX",
       text: "This is a test email sent using Nodemailer!",
