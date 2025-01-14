@@ -2,13 +2,11 @@ import express from "express";
 import { Router } from "express";
 import {
   testSendingEmail,
-  tesitingsendVerificationCodeToPhoneNumber,
-  verifyEmailOnRegister,
-  sendVerifiCationCodeToEmail,
-  sendVerificationCodeToPhoneNumber,
-  verifyPhoneNumberOnRegister,
-  verifyPhoneNumberOnLogin,
-  verifyEmailOnLogin,
+  verifyEmail,
+  sendVerifiCationCode,
+  forgotPassword,
+  verifyForgotPasswordEmail,
+  sendVerificationCodeforForgotPassword,
   redirectUri,
 } from "../controllers/verificationControllers";
 
@@ -34,5 +32,6 @@ verificationRouter
   .route("/verifyPhoneNumberOnRegister")
   .post(verifyPhoneNumberOnRegister);
 verificationRouter
-  .route("/verifyPhoneNumberOnLogin")
-  .post(verifyPhoneNumberOnLogin);
+  .route("/sendForgotPasswordEmail")
+  .post(sendVerificationCodeforForgotPassword);
+verificationRouter.route("/redirect").get(redirectUri);

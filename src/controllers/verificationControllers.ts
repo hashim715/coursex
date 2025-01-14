@@ -2,14 +2,12 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { prisma } from "../config/postgres";
 import crypto from "crypto";
 import { email_transporter } from "../utils/sendEmail";
-import { twilio_client } from "../utils/twilioClient";
 import { sendToken } from "../utils/sendToken";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { validateEmail } from "../utils/checkvalidemail";
-import { validatePhoneNumber } from "../utils/validatePhoneNumber";
+import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid";
 
 const getToken = async () => {
   try {
@@ -91,15 +89,15 @@ export const verifyEmailOnRegister: RequestHandler = async (
       });
     }
 
-    // const mailOptions = {
-    //   from: process.env.EMAIL_FROM,
-    //   to: email,
-    //   subject: "Hello from CourseX",
-    //   text: "Verify your Email",
-    //   html: `<h1>Your email verified successfully</h1>`,
-    // };
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your email verified successfully</h1>`,
+    };
 
-    // await email_transporter.sendMail(mailOptions);
+    await email_transporter.sendMail(mailOptions);
 
     await prisma.user.update({
       where: { email: email },
@@ -390,7 +388,19 @@ export const verifyPhoneNumberOnLogin: RequestHandler = async (
       },
     });
 
-    await sendToken(user.username, 200, res);
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/forgot</a></p>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Verification Email sent successfully" });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
@@ -463,11 +473,100 @@ export const sendVerifiCationCodeToEmail: RequestHandler = async (
       },
     });
 
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
+
     return res
       .status(200)
       .json({ success: true, message: "Verification Email sent successfully" });
   } catch (err) {
     console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const redirectUri: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let { password, email }: { password: string; email: string } = req.body;
+
+    if (!password.trim() || !email.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password should be of 8 characters at least",
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address that you provided is not valid",
+      });
+    }
+
+    const user = await prisma.user.findFirst({ where: { email: email } });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User with this email does not exists",
+      });
+    }
+
+    if (!user.resetPasswordVerification || !user.isUserVerified) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User is not verified" });
+    }
+
+    const salt: string = await bcrypt.genSalt(10);
+    password = await bcrypt.hash(password, salt);
+
+    await prisma.user.update({
+      where: { email: email },
+      data: {
+        password: password,
+        resetPasswordVerification: false,
+        forgotpassword_token: null,
+        forgotpassword_secret: null,
+        forgotpassword_token_expiry: null,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your password is reset</h1>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
     if (!res.headersSent) {
       return res
         .status(500)
@@ -510,7 +609,7 @@ export const testSendingEmail: RequestHandler = async (
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: "coursex.us@gmail.com",
       to: "hashimmuhammad844@gmail.com",
       subject: "Hello from CourseX",
       text: "This is a test email sent using Nodemailer!",

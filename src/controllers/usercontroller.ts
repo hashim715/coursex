@@ -8,7 +8,6 @@ import { redisClient } from "../config/redisClient";
 import { Group2, User2 } from "../utils/dataTypes";
 import { Message } from "../models/MessageSchema";
 import { generateVerificationCode } from "../utils/getVerificationCode";
-import { twilio_client } from "../utils/twilioClient";
 import { email_transporter } from "../utils/sendEmail";
 import { createAssistant } from "../controllers/knowledgebaseController";
 import { io } from "./chatController";
@@ -53,12 +52,41 @@ export const registerWithPhone: RequestHandler = async (
       });
     }
 
-    const verification = await twilio_client.verify.v2
-      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
-      .verifications.create({
-        channel: "sms",
-        to: phone_number,
-      });
+    const salt: string = await bcrypt.genSalt(10);
+    password = await bcrypt.hash(password, salt);
+
+    user = await prisma.user.create({
+      data: {
+        username: username,
+        email: email,
+        password: password,
+        name: name,
+      },
+    });
+
+    const { verificationToken, token, code } = generateVerificationCode();
+
+    const currentDate = new Date();
+    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000); // 30 minutes from currentDate
+
+    await prisma.user.update({
+      where: { email: email },
+      data: {
+        verification_secret: token,
+        verification_token: verificationToken,
+        verification_token_expiry: next30Minutes.toISOString(),
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
 
     return res
       .status(200)
