@@ -142,7 +142,7 @@ export const registerWithEmail: RequestHandler = async (
     if (!validateEmail(email)) {
       return res.status(400).json({
         success: false,
-        message: "Phone number that you provided is not valid",
+        message: "Email that you provided is not valid",
       });
     }
 
@@ -153,13 +153,13 @@ export const registerWithEmail: RequestHandler = async (
     if (user) {
       return res.status(400).json({
         success: true,
-        message: "User with that phone number already exists",
+        message: "User with that email already exists",
       });
     }
 
     const uuid = uuidv4();
 
-    const username = `${name}-${uuid}`;
+    const username = `${name.trim()}-${uuid}`;
 
     user = await prisma.user.findFirst({ where: { username: username } });
 
