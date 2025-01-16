@@ -1,7 +1,8 @@
 import express from "express";
 import { Router } from "express";
 import {
-  register,
+  registerWithEmail,
+  registerWithPhone,
   createGroup,
   createNonCourseGroup,
   testingController,
@@ -40,7 +41,8 @@ const uploadGroupImage = multer({
 
 export const userRouter: Router = express.Router();
 
-userRouter.route("/register").post(register);
+userRouter.route("/registerWithEmail").post(registerWithEmail);
+userRouter.route("/registerWithPhone").post(registerWithPhone);
 userRouter.route("/createGroup").post(protect, createGroup);
 userRouter
   .route("/testing")

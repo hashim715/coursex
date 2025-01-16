@@ -9,9 +9,11 @@ import { Group2, User2 } from "../utils/dataTypes";
 import { Message } from "../models/MessageSchema";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { twilio_client } from "../utils/twilioClient";
+import { email_transporter } from "../utils/sendEmail";
 import { createAssistant } from "../controllers/knowledgebaseController";
 import { io } from "./chatController";
 import { validatePhoneNumber } from "../utils/validatePhoneNumber";
+import { validateEmail } from "../utils/checkvalidemail";
 import { v4 as uuidv4 } from "uuid";
 
 export const getTokenFunc = (req: Request) => {
@@ -25,7 +27,7 @@ export const getTokenFunc = (req: Request) => {
   return token;
 };
 
-export const register: RequestHandler = async (
+export const registerWithPhone: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -92,9 +94,9 @@ export const register: RequestHandler = async (
     await prisma.user.update({
       where: { phone_number: phone_number },
       data: {
-        verification_secret: token,
-        verification_token: verificationToken,
-        verification_token_expiry: next30Minutes.toISOString(),
+        phonenumber_secret: token,
+        phonenumber_token: verificationToken,
+        phonenumber_token_expiry: next30Minutes.toISOString(),
       },
     });
 
@@ -102,6 +104,102 @@ export const register: RequestHandler = async (
       body: `Your otp verification code is ${code}`,
       from: process.env.TWILIO_ACCOUNT_PHONE_NUMBER,
       to: phone_number,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User registered successfully" });
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const registerWithEmail: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      name,
+      email,
+    }: {
+      name: string;
+      email: string;
+    } = req.body;
+
+    if (!name.trim() || !email.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number that you provided is not valid",
+      });
+    }
+
+    let user = await prisma.user.findFirst({
+      where: { email: email },
+    });
+
+    if (user) {
+      return res.status(400).json({
+        success: true,
+        message: "User with that phone number already exists",
+      });
+    }
+
+    const uuid = uuidv4();
+
+    const username = `${name}-${uuid}`;
+
+    user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (user) {
+      return res.status(400).json({
+        success: true,
+        message: "Try again something went wrong",
+      });
+    }
+
+    user = await prisma.user.create({
+      data: {
+        username: username,
+        name: name,
+        email: email,
+      },
+    });
+
+    const { verificationToken, token, code } = generateVerificationCode();
+
+    const currentDate = new Date();
+    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000);
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Hello from CourseX",
+      text: "Verify your Email",
+      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
+    };
+
+    await email_transporter.sendMail(mailOptions);
+
+    await prisma.user.update({
+      where: { email: email },
+      data: {
+        verification_secret: token,
+        verification_token: verificationToken,
+        verification_token_expiry: next30Minutes.toISOString(),
+      },
     });
 
     return res
