@@ -2,10 +2,11 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { prisma } from "../config/postgres";
 import crypto from "crypto";
 import { email_transporter } from "../utils/sendEmail";
+import { twilio_client } from "../utils/twilioClient";
 import { sendToken } from "../utils/sendToken";
 import { generateVerificationCode } from "../utils/getVerificationCode";
 import { validateEmail } from "../utils/checkvalidemail";
-import bcrypt from "bcrypt";
+import { validatePhoneNumber } from "../utils/validatePhoneNumber";
 import nodemailer from "nodemailer";
 import axios from "axios";
 
@@ -37,13 +38,18 @@ const getToken = async () => {
   }
 };
 
-export const verifyEmail: RequestHandler = async (
+export const verifyEmailOnRegister: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { code, email }: { code: string; email: string } = req.body;
+    const {
+      code,
+      email,
+      notificationToken,
+    }: { code: string; email: string; notificationToken: string | null } =
+      req.body;
 
     if (!code.trim() || !email.trim() || code.length < 6) {
       return res
@@ -97,10 +103,11 @@ export const verifyEmail: RequestHandler = async (
     await prisma.user.update({
       where: { email: email },
       data: {
-        isUserVerified: true,
+        isUserRegistered: true,
         verification_token: null,
         verification_secret: null,
         verification_token_expiry: null,
+        deviceToken: notificationToken,
       },
     });
 
@@ -114,13 +121,18 @@ export const verifyEmail: RequestHandler = async (
   }
 };
 
-export const verifyForgotPasswordEmail: RequestHandler = async (
+export const verifyEmailOnLogin: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { code, email }: { code: string; email: string } = req.body;
+    const {
+      code,
+      email,
+      notificationToken,
+    }: { code: string; email: string; notificationToken: string | null } =
+      req.body;
 
     if (!code.trim() || !email.trim() || code.length < 6) {
       return res
@@ -143,18 +155,24 @@ export const verifyForgotPasswordEmail: RequestHandler = async (
         .json({ success: false, message: "User does not exists" });
     }
 
+    if (!user.isUserRegistered) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User is not verified" });
+    }
+
     const verification_token = crypto
       .createHash("sha256")
-      .update(code + user.forgotpassword_secret)
+      .update(code + user.verification_secret)
       .digest("hex");
 
-    if (user.forgotpassword_token !== verification_token) {
+    if (user.verification_token !== verification_token) {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
     }
 
-    if (Date.now() > new Date(user.forgotpassword_token_expiry).getTime()) {
+    if (Date.now() > new Date(user.verification_token_expiry).getTime()) {
       return res.status(400).json({
         success: false,
         message: "Your verification token is expired not valid",
@@ -164,15 +182,15 @@ export const verifyForgotPasswordEmail: RequestHandler = async (
     await prisma.user.update({
       where: { email: email },
       data: {
-        resetPasswordVerification: true,
+        verification_token: null,
+        verification_secret: null,
+        verification_token_expiry: null,
+        deviceToken: notificationToken,
       },
     });
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Email verified successfully" });
+    await sendToken(user.username, 200, res);
   } catch (err) {
-    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
@@ -181,65 +199,76 @@ export const verifyForgotPasswordEmail: RequestHandler = async (
   }
 };
 
-export const sendVerificationCodeforForgotPassword: RequestHandler = async (
+export const verifyPhoneNumberOnRegister: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { email }: { email: string } = req.body;
+    const {
+      code,
+      phone_number,
+      notificationToken,
+    }: {
+      code: string;
+      phone_number: string;
+      notificationToken: string | null;
+    } = req.body;
 
-    if (!email.trim()) {
+    if (!code.trim() || !phone_number.trim() || code.length < 6) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
     }
 
-    if (!validateEmail(email)) {
+    if (!validatePhoneNumber(phone_number)) {
       return res.status(400).json({
         success: false,
-        message: "Email address that you provided is not valid",
+        message: "Phone number that you provided is not valid",
       });
     }
 
-    const user = await prisma.user.findFirst({ where: { email: email } });
+    const user = await prisma.user.findFirst({
+      where: { phone_number: phone_number },
+    });
 
     if (!user) {
-      return res.status(404).json({
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    const verification_token = crypto
+      .createHash("sha256")
+      .update(code + user.phonenumber_secret)
+      .digest("hex");
+
+    if (user.phonenumber_token !== verification_token) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Code did not match" });
+    }
+
+    if (Date.now() > new Date(user.phonenumber_token_expiry).getTime()) {
+      return res.status(400).json({
         success: false,
-        message: "User with given email does not exists",
+        message: "Your verification token is expired not valid",
       });
     }
 
-    const { verificationToken, token, code } = generateVerificationCode();
-
-    const currentDate = new Date();
-    const next24Hours = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-
     await prisma.user.update({
-      where: { email: email },
+      where: { phone_number: phone_number },
       data: {
-        forgotpassword_secret: token,
-        forgotpassword_token: verificationToken,
-        forgotpassword_token_expiry: next24Hours.toISOString(),
+        isUserRegistered: true,
+        phonenumber_token: null,
+        phonenumber_secret: null,
+        phonenumber_token_expiry: null,
+        deviceToken: notificationToken,
       },
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: "Hello from CourseX",
-      text: "Verify your Email",
-      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/forgot</a></p>`,
-    };
-
-    await email_transporter.sendMail(mailOptions);
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Verification Email sent successfully" });
+    await sendToken(user.username, 200, res);
   } catch (err) {
-    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
@@ -248,7 +277,90 @@ export const sendVerificationCodeforForgotPassword: RequestHandler = async (
   }
 };
 
-export const sendVerifiCationCode: RequestHandler = async (
+export const verifyPhoneNumberOnLogin: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      code,
+      phone_number,
+      notificationToken,
+    }: {
+      code: string;
+      phone_number: string;
+      notificationToken: string | null;
+    } = req.body;
+
+    if (!code.trim() || !phone_number.trim() || code.length < 6) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    if (!validatePhoneNumber(phone_number)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number that you provided is not valid",
+      });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { phone_number: phone_number },
+    });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    if (!user.isUserRegistered) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User is not verified" });
+    }
+
+    const verification_token = crypto
+      .createHash("sha256")
+      .update(code + user.phonenumber_secret)
+      .digest("hex");
+
+    if (user.phonenumber_token !== verification_token) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Code did not match" });
+    }
+
+    if (Date.now() > new Date(user.phonenumber_token_expiry).getTime()) {
+      return res.status(400).json({
+        success: false,
+        message: "Your verification token is expired not valid",
+      });
+    }
+
+    await prisma.user.update({
+      where: { phone_number: phone_number },
+      data: {
+        phonenumber_token: null,
+        phonenumber_secret: null,
+        phonenumber_token_expiry: null,
+        deviceToken: notificationToken,
+      },
+    });
+
+    await sendToken(user.username, 200, res);
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const sendVerifiCationCodeToEmail: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -315,85 +427,6 @@ export const sendVerifiCationCode: RequestHandler = async (
   }
 };
 
-export const forgotPassword: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    let { password, email }: { password: string; email: string } = req.body;
-
-    if (!password.trim() || !email.trim()) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide valid inputs" });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: "Password should be of 8 characters at least",
-      });
-    }
-
-    if (!validateEmail(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Email address that you provided is not valid",
-      });
-    }
-
-    const user = await prisma.user.findFirst({ where: { email: email } });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User with this email does not exists",
-      });
-    }
-
-    if (!user.resetPasswordVerification || !user.isUserVerified) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User is not verified" });
-    }
-
-    const salt: string = await bcrypt.genSalt(10);
-    password = await bcrypt.hash(password, salt);
-
-    await prisma.user.update({
-      where: { email: email },
-      data: {
-        password: password,
-        resetPasswordVerification: false,
-        forgotpassword_token: null,
-        forgotpassword_secret: null,
-        forgotpassword_token_expiry: null,
-      },
-    });
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: "Hello from CourseX",
-      text: "Verify your Email",
-      html: `<h1>Your password is reset</h1>`,
-    };
-
-    await email_transporter.sendMail(mailOptions);
-
-    return res
-      .status(200)
-      .json({ success: true, message: "Password updated successfully" });
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
 export const redirectUri: RequestHandler = async (
   req: Request,
   res: Response,
@@ -443,6 +476,94 @@ export const testSendingEmail: RequestHandler = async (
     });
 
     return res.status(200).json({ success: true, message: "Email Sent" });
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const tesitingsendVerificationCodeToPhoneNumber: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const message = await twilio_client.messages.create({
+      body: "Your code is 123445",
+      from: process.env.TWILIO_ACCOUNT_PHONE_NUMBER,
+      to: "+13463916054",
+    });
+
+    return res.status(200).json({ success: true, message: message });
+  } catch (err) {
+    console.log(err);
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const sendVerificationCodeToPhoneNumber: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { phone_number }: { phone_number: string } = req.body;
+
+    if (!phone_number.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide valid inputs" });
+    }
+
+    if (!validatePhoneNumber(phone_number)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number that you provided is not valid",
+      });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { phone_number: phone_number },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User with given phone number does not exists",
+      });
+    }
+
+    const { verificationToken, token, code } = generateVerificationCode();
+
+    const currentDate = new Date();
+    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { phone_number: phone_number },
+      data: {
+        phonenumber_secret: token,
+        phonenumber_token: verificationToken,
+        phonenumber_token_expiry: next30Minutes.toISOString(),
+      },
+    });
+
+    const message = await twilio_client.messages.create({
+      body: `Your otp verification code is ${code}`,
+      from: process.env.TWILIO_ACCOUNT_PHONE_NUMBER,
+      to: phone_number,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Message sent successfully" });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {

@@ -18,7 +18,6 @@ import { aiRouter } from "./routes/aiRoutes";
 import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
-import path from "path";
 import { createTopic } from "./config/kafka";
 import timeout from "connect-timeout";
 import cron from "node-cron";
@@ -33,8 +32,6 @@ app.use(express.json());
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-// app.use(express.static(path.join(__dirname, "public")));
 
 app.use(timeout("40s"));
 
@@ -99,32 +96,17 @@ createTopic();
 startMessageConsumer();
 
 const scheduleTask = async () => {
-  // cron.schedule("0 * * * *", async () => {
-  //   // Run every hour
-  //   const expirationTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-  //   await prisma.user.deleteMany({
-  //     where: {
-  //       isUserVerified: false,
-  //       createdAt: {
-  //         lt: expirationTime,
-  //       },
-  //     },
-  //   });
-  //   console.log("Account verification task scheduled");
-  // });
-
   cron.schedule("*/15 * * * *", async () => {
     // Run every 15 minutes
     const expirationTime = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
     await prisma.user.deleteMany({
       where: {
-        isUserVerified: false,
+        isUserRegistered: false,
         createdAt: {
           lt: expirationTime,
         },
       },
     });
-    // console.log("Account verification task scheduled");
   });
   console.log("Scheduler is set");
 };
