@@ -257,15 +257,15 @@ const sendNotification = async (username: string, group_id: number) => {
     if (messages.length > 0) {
       await firebase_admin.messaging().send({
         token: `${user.deviceToken}`,
-        notification: {
+        data: {
           title: "CourseX",
-          body: `You have recieved ${messages.length} messages from ${group.name}`,
-          imageUrl:
-            "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
+          body: `You have received ${messages.length} messages from ${group.name}`,
         },
         apns: {
           headers: {
             "apns-collapse-id": `${group.id}`,
+            "apns-priority": "10",
+            "apns-push-type": "background",
           },
         },
       });
