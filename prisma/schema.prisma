@@ -16,9 +16,9 @@ datasource db {
 model User {
   id Int @id @default(autoincrement())
   username String @unique()
+  phone_number String? @unique
   name String
-  email String @unique()
-  password String
+  email String? @unique()
   college String @default("University of Houston-Downtown")
   courses String @default("courses")
   year String @default("Freshmen")
@@ -27,14 +27,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   token String?
-  forgotpassword_token String?
-  forgotpassword_secret String?
-  forgotpassword_token_expiry String?
+  phonenumber_token String?
+  phonenumber_secret String?
+  phonenumber_token_expiry String?
   verification_token String?
   verification_secret String?
   verification_token_expiry String?
-  isUserVerified Boolean @default(false)
-  resetPasswordVerification Boolean @default(false)
+  isUserRegistered Boolean @default(false)
   major String @default("Majors")
   isbioDataUpdated Boolean @default(false)
   assistant Assistant[]

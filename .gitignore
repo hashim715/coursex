@@ -8,3 +8,4 @@ prisma/migrations
 dist/*
 src/config/deletekafkaGroups.ts
 service-account
+uploads

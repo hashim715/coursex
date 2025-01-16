@@ -1,20 +1,18 @@
 import { prisma } from "../config/postgres";
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import bcrypt from "bcrypt";
-import { sendToken } from "../utils/sendToken";
-import { validateEmail } from "../utils/checkvalidemail";
-import { matchPassword } from "../utils/matchPassword";
 import jwt_decode from "jwt-decode";
 import fs from "fs";
 import { s3 } from "../config/aws_s3";
 import QRCode from "qrcode";
 import { redisClient } from "../config/redisClient";
-import { Group2, User2, DefaultGroupType } from "../utils/dataTypes";
+import { Group2, User2 } from "../utils/dataTypes";
 import { Message } from "../models/MessageSchema";
 import { generateVerificationCode } from "../utils/getVerificationCode";
-import { email_transporter } from "../utils/sendEmail";
+import { twilio_client } from "../utils/twilioClient";
 import { createAssistant } from "../controllers/knowledgebaseController";
 import { io } from "./chatController";
+import { validatePhoneNumber } from "../utils/validatePhoneNumber";
+import { v4 as uuidv4 } from "uuid";
 
 export const getTokenFunc = (req: Request) => {
   let token: string;
@@ -35,82 +33,64 @@ export const register: RequestHandler = async (
   try {
     const {
       name,
-      username,
-      email,
+      phone_number,
     }: {
       name: string;
-      username: string;
-      email: string;
+      phone_number: string;
     } = req.body;
 
-    let { password }: { password: string } = req.body;
-
-    if (!name.trim() || !username.trim() || !email.trim() || !password.trim()) {
+    if (!name.trim() || !phone_number.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
     }
 
-    if (username.length < 6) {
+    if (!validatePhoneNumber(phone_number)) {
       return res.status(400).json({
         success: false,
-        message: "Username should be of 6 characters at least",
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: "Password should be of 8 characters at least",
-      });
-    }
-
-    if (!validateEmail(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Email address that you provided is not valid",
+        message: "Phone number that you provided is not valid",
       });
     }
 
     let user = await prisma.user.findFirst({
-      where: { username: username },
+      where: { phone_number: phone_number },
     });
 
     if (user) {
       return res.status(400).json({
-        success: false,
-        message: "User with that username already exists",
+        success: true,
+        message: "User with that phone number already exists",
       });
     }
 
-    user = await prisma.user.findFirst({ where: { email: email } });
+    const uuid = uuidv4();
+
+    const username = `${name}-${uuid}`;
+
+    user = await prisma.user.findFirst({ where: { username: username } });
 
     if (user) {
       return res.status(400).json({
-        success: false,
-        message: "User with that email already exists",
+        success: true,
+        message: "Try again something went wrong",
       });
     }
-
-    const salt: string = await bcrypt.genSalt(10);
-    password = await bcrypt.hash(password, salt);
 
     user = await prisma.user.create({
       data: {
         username: username,
-        email: email,
-        password: password,
         name: name,
+        phone_number: phone_number,
       },
     });
 
     const { verificationToken, token, code } = generateVerificationCode();
 
     const currentDate = new Date();
-    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000); // 30 minutes from currentDate
+    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000);
 
     await prisma.user.update({
-      where: { email: email },
+      where: { phone_number: phone_number },
       data: {
         verification_secret: token,
         verification_token: verificationToken,
@@ -118,78 +98,15 @@ export const register: RequestHandler = async (
       },
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: "Hello from CourseX",
-      text: "Verify your Email",
-      html: `<h1>Your verification code is: ${code}</h1></br><p>Click on the link given below:<a>https://coursex.us/app/verification/${email}/verify</a></p>`,
-    };
-
-    await email_transporter.sendMail(mailOptions);
+    const message = await twilio_client.messages.create({
+      body: `Your otp verification code is ${code}`,
+      from: process.env.TWILIO_ACCOUNT_PHONE_NUMBER,
+      to: phone_number,
+    });
 
     return res
       .status(200)
       .json({ success: true, message: "User registered successfully" });
-  } catch (err) {
-    console.log(err);
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Something went wrong" });
-    }
-  }
-};
-
-export const login: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<Response> => {
-  try {
-    const {
-      email,
-      password,
-      notificationToken,
-    }: { email: string; password: string; notificationToken: string } =
-      req.body;
-
-    if (!email.trim() || !password.trim()) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide valid inputs" });
-    }
-
-    const user = await prisma.user.findFirst({ where: { email: email } });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User with that email does not exists",
-      });
-    }
-
-    if (!user.isUserVerified) {
-      return res.status(400).json({
-        success: false,
-        message: "Your account is not verified",
-      });
-    }
-
-    const isMatch = await matchPassword(password, user.password);
-
-    if (!isMatch) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Password did not match" });
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { deviceToken: notificationToken },
-    });
-
-    await sendToken(user.username, 200, res);
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
@@ -1557,32 +1474,13 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
   try {
     const {
       college,
-      courses,
-      year,
-      major,
-      profile_image,
-      assistantName,
-      assistantInstruction,
       token,
     }: {
       college: string;
-      courses: string;
-      year: string;
-      major: string;
-      profile_image: string;
-      assistantName: string;
-      assistantInstruction: string;
       token: string;
     } = req.body;
 
-    if (
-      !college.trim() ||
-      !courses.trim() ||
-      !year.trim() ||
-      !major.trim() ||
-      !profile_image.trim() ||
-      !token.trim()
-    ) {
+    if (!college.trim() || !token.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -1598,38 +1496,10 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
         .json({ success: false, message: "User not found" });
     }
 
-    // const prefix = Date.now();
-    // const uniqueAssistantName = `${prefix}-assistant`;
-
-    // const assistantData = await createAssistant(
-    //   uniqueAssistantName,
-    //   assistantInstruction
-    // );
-
-    // if (assistantData.error) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: assistantData.message,
-    //   });
-    // }
-
-    // await prisma.assistant.create({
-    //   data: {
-    //     name: assistantName,
-    //     instructions: assistantData.instructions,
-    //     user_id: user.id,
-    //     chatbotName: uniqueAssistantName,
-    //   },
-    // });
-
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        courses: courses,
         college: college,
-        year: year,
-        major: major,
-        image: profile_image,
         isbioDataUpdated: true,
       },
     });
