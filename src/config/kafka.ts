@@ -255,44 +255,19 @@ const sendNotification = async (username: string, group_id: number) => {
     }).sort({ timeStamp: -1 });
 
     if (messages.length > 0) {
-      // await firebase_admin.messaging().send({
-      //   token: user.deviceToken,
-      //   notification: {
-      //     title: "CourseX",
-      //     body: `You have received ${messages.length} messages from ${group.name}`,
-      //     imageUrl:
-      //       "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
-      //   },
-      //   apns: {
-      //     headers: {
-      //       "apns-priority": "10",
-      //       "apns-push-type": "alert",
-      //       "apns-collapse-id": `${group.id}`,
-      //     },
-      //   },
-      // });
-
       await firebase_admin.messaging().send({
         token: user.deviceToken,
         notification: {
           title: "CourseX",
-          body: `You have received ${messages.length} messages from ${group.name}`,
+          body: `You have received messages from ${group.name}`,
+          imageUrl:
+            "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
         },
         apns: {
-          payload: {
-            aps: {
-              alert: {
-                title: "CourseX",
-                body: `You have received ${messages.length} messages from ${group.name}`,
-              },
-              "mutable-content": 1,
-              "content-available": 1,
-            },
-          },
           headers: {
             "apns-priority": "10",
             "apns-push-type": "alert",
-            "apns-collapse-id": `${group.id}`,
+            "apns-collapse-id": `${group.id}-${group.name}`,
           },
         },
       });

@@ -60,20 +60,20 @@ export const registerWithPhone: RequestHandler = async (
 
     if (user) {
       return res.status(400).json({
-        success: true,
+        success: false,
         message: "User with that phone number already exists",
       });
     }
 
     const uuid = uuidv4();
 
-    const username = `${name}-${uuid}`;
+    const username = `${name.trim()}-${uuid}`;
 
     user = await prisma.user.findFirst({ where: { username: username } });
 
     if (user) {
       return res.status(400).json({
-        success: true,
+        success: false,
         message: "Try again something went wrong",
       });
     }
@@ -152,7 +152,7 @@ export const registerWithEmail: RequestHandler = async (
 
     if (user) {
       return res.status(400).json({
-        success: true,
+        success: false,
         message: "User with that email already exists",
       });
     }
@@ -165,7 +165,7 @@ export const registerWithEmail: RequestHandler = async (
 
     if (user) {
       return res.status(400).json({
-        success: true,
+        success: false,
         message: "Try again something went wrong",
       });
     }

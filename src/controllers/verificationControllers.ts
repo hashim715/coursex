@@ -390,6 +390,14 @@ export const sendVerifiCationCodeToEmail: RequestHandler = async (
       });
     }
 
+    if (!user.isUserRegistered) {
+      return res.status(200).json({
+        success: false,
+        message:
+          "Please verify your account with the time limit given if not then register again after that time limit",
+      });
+    }
+
     const { verificationToken, token, code } = generateVerificationCode();
 
     const currentDate = new Date();
@@ -538,6 +546,14 @@ export const sendVerificationCodeToPhoneNumber: RequestHandler = async (
       return res.status(404).json({
         success: false,
         message: "User with given phone number does not exists",
+      });
+    }
+
+    if (!user.isUserRegistered) {
+      return res.status(200).json({
+        success: false,
+        message:
+          "Please verify your account with the time limit given if not then register again after that time limit",
       });
     }
 
