@@ -15,6 +15,7 @@ import { knowledgeBaseRouter } from "./routes/knowledgeBaseRoutes";
 import { webUserRouter } from "./routes/webUserRoutes";
 import { notificationRouter } from "./routes/notificationRoutes";
 import { aiRouter } from "./routes/aiRoutes";
+import { testingRouter } from "./routes/testingRoutes";
 import { connectDB } from "./config/mongo";
 import { redisClient } from "./config/redisClient";
 import bodyParser from "body-parser";
@@ -74,6 +75,8 @@ app.use("/api/webUser", webUserRouter);
 app.use("/api/ai", aiRouter);
 
 app.use("/api/notification", notificationRouter);
+
+app.use("/api/testingRoutes", testingRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
@@ -142,4 +145,5 @@ const start = async (): Promise<void> => {
     await redisClient.flushDb();
   }
 };
+
 start();
