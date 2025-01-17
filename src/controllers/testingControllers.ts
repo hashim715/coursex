@@ -58,7 +58,9 @@ export const joinExistingUsersToGroup = async (
     const users = await prisma.user.findMany({});
 
     for (const user of users) {
-      const filteredUser = group.users.filter((user_) => user_.id === user.id);
+      const filteredUser = group.users.filter(
+        (user_: any) => user_.id === user.id
+      );
 
       if (filteredUser.length > 0) {
         continue;
