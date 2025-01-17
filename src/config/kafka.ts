@@ -259,8 +259,10 @@ const sendNotification = async (username: string, group_id: number) => {
     if (messages.length > 0) {
       await firebase_admin.messaging().send({
         token: user.deviceToken,
+        token: user.deviceToken,
         notification: {
           title: "CourseX",
+          body: `You have received messages from ${group.name}`,
           body: `You have received messages from ${group.name}`,
           imageUrl:
             "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
@@ -269,13 +271,7 @@ const sendNotification = async (username: string, group_id: number) => {
           headers: {
             "apns-priority": "10",
             "apns-push-type": "alert",
-            "apns-collapse-id": `${group.id.toString()}-${username}`,
-          },
-          payload: {
-            aps: {
-              contentAvailable: true,
-              mutableContent: true,
-            },
+            "apns-collapse-id": `${group.id}-${group.name}`,
           },
         },
       });
