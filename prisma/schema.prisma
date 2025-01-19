@@ -20,9 +20,9 @@ model User {
   name String
   email String? @unique()
   college String @default("University of Houston-Downtown")
-  courses String @default("courses")
-  year String @default("Freshmen")
-  image String @default("https://assets.api.uizard.io/api/cdn/stream/72aa7c72-8bd6-4874-b4ad-36a00b6d5bf2.png")
+  courses String? @default("None shared yet")
+  year String? @default("")
+  image String @default("https://assets.api.uizard.io/api/cdn/stream/a66d2907-c3f9-47b0-bf0f-db5ef51dee62.jpg")
   groups Group[]  @relation("UserGroups")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -31,7 +31,7 @@ model User {
   verification_secret String?
   verification_token_expiry String?
   isUserRegistered Boolean @default(false)
-  major String @default("Majors")
+  major String? @default("")
   isbioDataUpdated Boolean @default(false)
   assistant Assistant[]
   documents Documents[]

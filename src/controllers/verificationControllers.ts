@@ -229,21 +229,11 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       });
     }
 
-    let user = await prisma.user.findFirst({
-      where: { phone_number: phone_number },
-    });
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User does not exists" });
-    }
-
     const uuid = uuidv4();
 
     const username = uuid;
 
-    user = await prisma.user.findFirst({ where: { username: username } });
+    const user = await prisma.user.findFirst({ where: { username: username } });
 
     if (user) {
       return res.status(400).json({
