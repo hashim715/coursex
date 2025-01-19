@@ -267,6 +267,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
 
     await sendToken(user.username, 200, res);
   } catch (err) {
+    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
@@ -342,6 +343,7 @@ export const verifyPhoneNumberOnLogin: RequestHandler = async (
 
     await sendToken(user.username, 200, res);
   } catch (err) {
+    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
