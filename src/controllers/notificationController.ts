@@ -27,10 +27,10 @@ export const testNofication: RequestHandler = async (
   try {
     await firebase_admin.messaging().send({
       token:
-        "fIB4rr37JEsFloVzktV1Tr:APA91bFnFwxZpHUgRWX_82DSrTyasaCMljhJGPTf5e9GoswomEuF4Ws79pLn8HODTLyGKmi_9_8LUp_m4T61glCu-9pzkYWLDAkm6s8YjFl6xR819-UZelg",
+        "cQVEzXT9jUNjqY1k6AHVJw:APA91bHlXxPNKDI-QoXLfcg40qpMOpa8XO0r2WjKuaYcIPeb1ZdmkqXLl1cADxh0iuiIyC9QeLLZVECCKYWOA-2DU3HjHBLJpmUV7TKHtKkF0cXi6hJfqfA",
       notification: {
         title: "CourseX",
-        body: "this is a notification",
+        body: "Hello world this is coursex",
         imageUrl:
           "https://res.cloudinary.com/dicdsctqj/image/upload/v1734598815/kxnkkrd8y64ageulq5xb.jpg",
       },
