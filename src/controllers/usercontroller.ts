@@ -34,14 +34,12 @@ export const registerWithPhone: RequestHandler = async (
 ): Promise<Response> => {
   try {
     const {
-      name,
       phone_number,
     }: {
-      name: string;
       phone_number: string;
     } = req.body;
 
-    if (!name.trim() || !phone_number.trim()) {
+    if (!phone_number.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -54,7 +52,7 @@ export const registerWithPhone: RequestHandler = async (
       });
     }
 
-    let user = await prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: { phone_number: phone_number },
     });
 
@@ -65,19 +63,6 @@ export const registerWithPhone: RequestHandler = async (
       });
     }
 
-    const uuid = uuidv4();
-
-    const username = `${name.trim()}-${uuid}`;
-
-    user = await prisma.user.findFirst({ where: { username: username } });
-
-    if (user) {
-      return res.status(400).json({
-        success: false,
-        message: "Try again something went wrong",
-      });
-    }
-
     const verification = await twilio_client.verify.v2
       .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
       .verifications.create({
@@ -85,17 +70,9 @@ export const registerWithPhone: RequestHandler = async (
         to: phone_number,
       });
 
-    user = await prisma.user.create({
-      data: {
-        username: username,
-        name: name,
-        phone_number: phone_number,
-      },
-    });
-
     return res
       .status(200)
-      .json({ success: true, message: "User registered successfully" });
+      .json({ success: true, message: "Verification code sent successfully" });
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {

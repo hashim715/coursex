@@ -121,10 +121,11 @@ const start = async (): Promise<void> => {
     });
     await connectDB();
     await redisClient.flushDb();
-    await scheduleTask();
+    // await scheduleTask();
   } catch (err) {
     console.log(err);
     await redisClient.flushDb();
   }
 };
+
 start();
