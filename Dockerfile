@@ -12,8 +12,6 @@ COPY . .
 
 RUN rm -rf node_modules/long
 
-RUN npm run set-memory
-
 RUN npm run build
 
 RUN npx prisma generate 
