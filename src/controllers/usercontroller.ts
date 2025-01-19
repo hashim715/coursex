@@ -78,6 +78,13 @@ export const registerWithPhone: RequestHandler = async (
       });
     }
 
+    const verification = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verifications.create({
+        channel: "sms",
+        to: phone_number,
+      });
+
     user = await prisma.user.create({
       data: {
         username: username,
@@ -85,13 +92,6 @@ export const registerWithPhone: RequestHandler = async (
         phone_number: phone_number,
       },
     });
-
-    const verification = await twilio_client.verify.v2
-      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
-      .verifications.create({
-        channel: "sms",
-        to: phone_number,
-      });
 
     return res
       .status(200)
@@ -157,14 +157,6 @@ export const registerWithEmail: RequestHandler = async (
       });
     }
 
-    user = await prisma.user.create({
-      data: {
-        username: username,
-        name: name,
-        email: email,
-      },
-    });
-
     const { verificationToken, token, code } = generateVerificationCode();
 
     const currentDate = new Date();
@@ -180,9 +172,11 @@ export const registerWithEmail: RequestHandler = async (
 
     await email_transporter.sendMail(mailOptions);
 
-    await prisma.user.update({
-      where: { email: email },
+    user = await prisma.user.create({
       data: {
+        username: username,
+        name: name,
+        email: email,
         verification_secret: token,
         verification_token: verificationToken,
         verification_token_expiry: next30Minutes.toISOString(),
