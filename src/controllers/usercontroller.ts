@@ -1530,13 +1530,15 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
   try {
     const {
       college,
+      name,
       token,
     }: {
       college: string;
       token: string;
+      name: string;
     } = req.body;
 
-    if (!college.trim() || !token.trim()) {
+    if (!college.trim() || !name.trim() || !token.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide valid inputs" });
@@ -1555,6 +1557,7 @@ export const updateProfileDataOnSignUp: RequestHandler = async (
     await prisma.user.update({
       where: { id: user.id },
       data: {
+        name: name,
         college: college,
         isbioDataUpdated: true,
       },
