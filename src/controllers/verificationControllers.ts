@@ -238,31 +238,23 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
         .json({ success: false, message: "User does not exists" });
     }
 
-    const verification_token = crypto
-      .createHash("sha256")
-      .update(code + user.phonenumber_secret)
-      .digest("hex");
+    const verificationCheck = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verificationChecks.create({
+        code: code,
+        to: phone_number,
+      });
 
-    if (user.phonenumber_token !== verification_token) {
+    if (verificationCheck.status !== "approved") {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
-    }
-
-    if (Date.now() > new Date(user.phonenumber_token_expiry).getTime()) {
-      return res.status(400).json({
-        success: false,
-        message: "Your verification token is expired not valid",
-      });
     }
 
     await prisma.user.update({
       where: { phone_number: phone_number },
       data: {
         isUserRegistered: true,
-        phonenumber_token: null,
-        phonenumber_secret: null,
-        phonenumber_token_expiry: null,
         deviceToken: notificationToken,
       },
     });
@@ -322,30 +314,22 @@ export const verifyPhoneNumberOnLogin: RequestHandler = async (
         .json({ success: false, message: "User is not verified" });
     }
 
-    const verification_token = crypto
-      .createHash("sha256")
-      .update(code + user.phonenumber_secret)
-      .digest("hex");
+    const verificationCheck = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verificationChecks.create({
+        code: code,
+        to: phone_number,
+      });
 
-    if (user.phonenumber_token !== verification_token) {
+    if (verificationCheck.status !== "approved") {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
     }
 
-    if (Date.now() > new Date(user.phonenumber_token_expiry).getTime()) {
-      return res.status(400).json({
-        success: false,
-        message: "Your verification token is expired not valid",
-      });
-    }
-
     await prisma.user.update({
       where: { phone_number: phone_number },
       data: {
-        phonenumber_token: null,
-        phonenumber_secret: null,
-        phonenumber_token_expiry: null,
         deviceToken: notificationToken,
       },
     });
@@ -557,25 +541,12 @@ export const sendVerificationCodeToPhoneNumber: RequestHandler = async (
       });
     }
 
-    const { verificationToken, token, code } = generateVerificationCode();
-
-    const currentDate = new Date();
-    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000);
-
-    await prisma.user.update({
-      where: { phone_number: phone_number },
-      data: {
-        phonenumber_secret: token,
-        phonenumber_token: verificationToken,
-        phonenumber_token_expiry: next30Minutes.toISOString(),
-      },
-    });
-
-    const message = await twilio_client.messages.create({
-      body: `Your otp verification code is ${code}`,
-      from: process.env.TWILIO_ACCOUNT_PHONE_NUMBER,
-      to: phone_number,
-    });
+    const verification = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verifications.create({
+        channel: "sms",
+        to: phone_number,
+      });
 
     return res
       .status(200)

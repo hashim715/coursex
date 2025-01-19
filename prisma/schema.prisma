@@ -27,9 +27,6 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   token String?
-  phonenumber_token String?
-  phonenumber_secret String?
-  phonenumber_token_expiry String?
   verification_token String?
   verification_secret String?
   verification_token_expiry String?

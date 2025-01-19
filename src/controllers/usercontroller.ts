@@ -86,25 +86,12 @@ export const registerWithPhone: RequestHandler = async (
       },
     });
 
-    const { verificationToken, token, code } = generateVerificationCode();
-
-    const currentDate = new Date();
-    const next30Minutes = new Date(currentDate.getTime() + 30 * 60 * 1000);
-
-    await prisma.user.update({
-      where: { phone_number: phone_number },
-      data: {
-        phonenumber_secret: token,
-        phonenumber_token: verificationToken,
-        phonenumber_token_expiry: next30Minutes.toISOString(),
-      },
-    });
-
-    const message = await twilio_client.messages.create({
-      body: `Your otp verification code is ${code}`,
-      from: process.env.TWILIO_ACCOUNT_PHONE_NUMBER,
-      to: phone_number,
-    });
+    const verification = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verifications.create({
+        channel: "sms",
+        to: phone_number,
+      });
 
     return res
       .status(200)
