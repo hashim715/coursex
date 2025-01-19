@@ -265,7 +265,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       },
     });
 
-    await sendToken(user.username, 200, res);
+    await sendToken(username, 200, res);
   } catch (err) {
     console.log(err);
     if (!res.headersSent) {
