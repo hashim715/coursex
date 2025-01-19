@@ -9,6 +9,7 @@ import { validateEmail } from "../utils/checkvalidemail";
 import { validatePhoneNumber } from "../utils/validatePhoneNumber";
 import nodemailer from "nodemailer";
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
 
 const getToken = async () => {
   try {
@@ -228,7 +229,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       });
     }
 
-    const user = await prisma.user.findFirst({
+    let user = await prisma.user.findFirst({
       where: { phone_number: phone_number },
     });
 
@@ -236,6 +237,19 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       return res
         .status(404)
         .json({ success: false, message: "User does not exists" });
+    }
+
+    const uuid = uuidv4();
+
+    const username = uuid;
+
+    user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (user) {
+      return res.status(400).json({
+        success: false,
+        message: "Try again something went wrong",
+      });
     }
 
     const verificationCheck = await twilio_client.verify.v2
@@ -251,11 +265,13 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
         .json({ success: false, message: "Code did not match" });
     }
 
-    await prisma.user.update({
-      where: { phone_number: phone_number },
+    await prisma.user.create({
       data: {
-        isUserRegistered: true,
+        name: "John",
+        username: username,
+        phone_number: phone_number,
         deviceToken: notificationToken,
+        isUserRegistered: true,
       },
     });
 
