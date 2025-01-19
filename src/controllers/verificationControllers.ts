@@ -90,15 +90,15 @@ export const verifyEmailOnRegister: RequestHandler = async (
       });
     }
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: "Hello from CourseX",
-      text: "Verify your Email",
-      html: `<h1>Your email verified successfully</h1>`,
-    };
+    // const mailOptions = {
+    //   from: process.env.EMAIL_FROM,
+    //   to: email,
+    //   subject: "Hello from CourseX",
+    //   text: "Verify your Email",
+    //   html: `<h1>Your email verified successfully</h1>`,
+    // };
 
-    await email_transporter.sendMail(mailOptions);
+    // await email_transporter.sendMail(mailOptions);
 
     await prisma.user.update({
       where: { email: email },
@@ -387,15 +387,6 @@ export const sendVerifiCationCodeToEmail: RequestHandler = async (
     const currentDate = new Date();
     const next24Hours = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
 
-    await prisma.user.update({
-      where: { email: email },
-      data: {
-        verification_secret: token,
-        verification_token: verificationToken,
-        verification_token_expiry: next24Hours.toISOString(),
-      },
-    });
-
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
@@ -405,6 +396,15 @@ export const sendVerifiCationCodeToEmail: RequestHandler = async (
     };
 
     await email_transporter.sendMail(mailOptions);
+
+    await prisma.user.update({
+      where: { email: email },
+      data: {
+        verification_secret: token,
+        verification_token: verificationToken,
+        verification_token_expiry: next24Hours.toISOString(),
+      },
+    });
 
     return res
       .status(200)
