@@ -219,15 +219,11 @@ const saveMessageToDB = async (message: string) => {
       });
     }
 
-    for (const user of group_members.users) {
-      await sendNotification(user.username, parseInt(parsedMessage.groupID));
-    }
-
-    // await Promise.all(
-    //   group_members.users.map((user: any) =>
-    //     sendNotification(user.username, parseInt(parsedMessage.groupID))
-    //   )
-    // );
+    await Promise.all(
+      group_members.users.map((user: any) =>
+        sendNotification(user.username, parseInt(parsedMessage.groupID))
+      )
+    );
   } catch (err) {
     console.log(err);
   }
