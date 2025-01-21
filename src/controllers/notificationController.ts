@@ -27,7 +27,7 @@ export const testNofication: RequestHandler = async (
   try {
     await firebase_admin.messaging().send({
       token:
-        "fIB4rr37JEsFloVzktV1Tr:APA91bFnFwxZpHUgRWX_82DSrTyasaCMljhJGPTf5e9GoswomEuF4Ws79pLn8HODTLyGKmi_9_8LUp_m4T61glCu-9pzkYWLDAkm6s8YjFl6xR819-UZelg",
+        "cDMnNpdP1ETbhHoMVxA8rA:APA91bFPm_2zGiRhkxs0mE2WoAbgEPlRDRJ629XlSLzVlxhKflSat2thHmmcghccoTvMh3NFaH_cB98McYMUJX6ihLaUUViIH3fTlQFuD85e3SNmD3yZHvk",
       notification: {
         title: "CourseX",
         body: "this is a notification",

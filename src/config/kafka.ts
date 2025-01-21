@@ -222,9 +222,9 @@ const saveMessageToDB = async (message: string) => {
     }
 
     await Promise.all(
-      group_members.users.map((user: any) => {
-        return sendNotification(user.username, parseInt(parsedMessage.groupID));
-      })
+      group_members.users.map((user: any) =>
+        sendNotification(user.username, parseInt(parsedMessage.groupID))
+      )
     );
   } catch (err) {
     console.log(err);
@@ -269,7 +269,7 @@ const sendNotification = async (username: string, group_id: number) => {
           headers: {
             "apns-priority": "10",
             "apns-push-type": "alert",
-            "apns-collapse-id": `${group.id}-${group.name}`,
+            "apns-collapse-id": `${group.id.toString()}-${username}`,
           },
         },
       });
