@@ -238,8 +238,6 @@ const sendNotification = async (username: string, group_id: number) => {
       },
     });
 
-    console.log(user);
-
     if (!user) {
       return;
     }
