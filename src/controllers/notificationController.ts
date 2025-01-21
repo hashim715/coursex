@@ -3,14 +3,47 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt_decode from "jwt-decode";
 import { firebase_admin } from "../config/firebase";
 
-export const getRegistrationToken: RequestHandler = async (
+export const getTokenFunc = (req: Request) => {
+  let token: string;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  return token;
+};
+
+export const refreshNotificationToken: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { registration_token } = req.body;
+    const { notificationToken } = req.body;
+
+    const token = getTokenFunc(req);
+
+    const { username }: { username: string } = jwt_decode(token);
+
+    const user = await prisma.user.findFirst({ where: { username: username } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exists" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { deviceToken: notificationToken },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Token refreshed successfully" });
   } catch (err) {
+    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
