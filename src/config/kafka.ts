@@ -273,6 +273,12 @@ const sendNotification = async (username: string, group_id: number) => {
             "apns-push-type": "alert",
             "apns-collapse-id": `${group.id.toString()}-${username}`,
           },
+          payload: {
+            aps: {
+              contentAvailable: true,
+              mutableContent: true,
+            },
+          },
         },
       });
     }
