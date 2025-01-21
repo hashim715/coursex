@@ -252,8 +252,10 @@ const sendNotification = async (username: string, group_id: number) => {
 
     const messages = await Message.find({
       groupId: group.id,
-      [`status.${username}`]: "sent",
-      [`status.${username}`]: "delivered",
+      $or: [
+        { [`status.${username}`]: "sent" },
+        { [`status.${username}`]: "delivered" },
+      ],
     }).sort({ timeStamp: -1 });
 
     if (messages.length > 0) {
