@@ -271,7 +271,7 @@ const sendNotification = async (username: string, group_id: number) => {
           headers: {
             "apns-priority": "10",
             "apns-push-type": "alert",
-            "apns-collapse-id": `${group.id}-${group.name}`,
+            "apns-collapse-id": `${group.id.toString()}-${username}`,
           },
         },
       });
