@@ -252,8 +252,10 @@ const sendNotification = async (username: string, group_id: number) => {
 
     const messages = await Message.find({
       groupId: group.id,
-      [`status.${username}`]: "sent",
-      [`status.${username}`]: "delivered",
+      $or: [
+        { [`status.${username}`]: "sent" },
+        { [`status.${username}`]: "delivered" },
+      ],
     }).sort({ timeStamp: -1 });
 
     if (messages.length > 0) {
@@ -270,6 +272,12 @@ const sendNotification = async (username: string, group_id: number) => {
             "apns-priority": "10",
             "apns-push-type": "alert",
             "apns-collapse-id": `${group.id.toString()}-${username}`,
+          },
+          payload: {
+            aps: {
+              contentAvailable: true,
+              mutableContent: true,
+            },
           },
         },
       });
