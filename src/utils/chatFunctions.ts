@@ -130,9 +130,8 @@ export const addSocketsToRoom = async (
           ])
         );
       }
-      await redisClient.setEx(
+      await redisClient.set(
         `groups`,
-        1800,
         JSON.stringify(serializeGroupMap(usersockets))
       );
     } else {
@@ -147,9 +146,8 @@ export const addSocketsToRoom = async (
           ]),
         ],
       ]);
-      await redisClient.setEx(
+      await redisClient.set(
         `groups`,
-        1800,
         JSON.stringify(serializeGroupMap(usersockets))
       );
     }
@@ -176,18 +174,16 @@ export const addActiveUsers = async (
       } else {
         activeusers.set(username, new Set<string>([socket_id]));
       }
-      await redisClient.setEx(
+      await redisClient.set(
         `active_users`,
-        1800,
         JSON.stringify(SerializeActiveUsersMap(activeusers))
       );
     } else {
       const activeusers: ActiveUsersMapType = new Map([
         [username, new Set<string>([socket_id])],
       ]);
-      await redisClient.setEx(
+      await redisClient.set(
         `active_users`,
-        1800,
         JSON.stringify(SerializeActiveUsersMap(activeusers))
       );
     }
@@ -211,15 +207,13 @@ export const addToSocketsListForTrackingUsers = async (
       } else {
         activesockets.add(socket_id);
       }
-      await redisClient.setEx(
+      await redisClient.set(
         "active-sockets-list",
-        1800,
         JSON.stringify(Array.from(activesockets))
       );
     } else {
-      await redisClient.setEx(
+      await redisClient.set(
         "active-sockets-list",
-        1800,
         JSON.stringify(Array.from(new Set([socket_id])))
       );
     }
@@ -240,15 +234,13 @@ export const saveUserSocketToRedis = async (
       const usersMap: SavedUsersMapType =
         DeSerializeSocketConnectionMap(cachedData);
       usersMap.set(socket_id, username);
-      await redisClient.setEx(
+      await redisClient.set(
         "user_sockets_data",
-        1800,
         JSON.stringify(SerializeSocketConnectionMap(usersMap))
       );
     } else {
-      await redisClient.setEx(
+      await redisClient.set(
         "user_sockets_data",
-        1800,
         JSON.stringify(Array.from(new Map([[socket_id, username]])))
       );
     }
@@ -288,9 +280,8 @@ export const removeFromSocketsList = async (socket_id: string) => {
         activesockets.delete(socket_id);
         console.log("Removed the user from sockets list....");
       }
-      await redisClient.setEx(
+      await redisClient.set(
         "active-sockets-list",
-        1800,
         JSON.stringify(Array.from(activesockets))
       );
     }
@@ -333,9 +324,8 @@ export const RemoveFromGroupRoomMap = async (
           }
         }
       }
-      await redisClient.setEx(
+      await redisClient.set(
         `groups`,
-        1800,
         JSON.stringify(serializeGroupMap(usersockets))
       );
     }
@@ -368,9 +358,8 @@ export const RemoveFromActiveUsersMap = async (
           }
         }
       }
-      await redisClient.setEx(
+      await redisClient.set(
         `active_users`,
-        1800,
         JSON.stringify(SerializeActiveUsersMap(activeusers))
       );
     }
