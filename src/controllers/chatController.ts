@@ -57,6 +57,7 @@ export const chatController = async (
     socket.on("join-single-room", async (data) => {
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
+        socket.join(groupID);
         await addSocketsToRoom(groupID, data.username, socket.id);
         console.log(`join single room by ${data.username}`);
       }
@@ -65,6 +66,7 @@ export const chatController = async (
     socket.on("leave-single-room", async (data) => {
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
+        socket.leave(groupID);
         await RemoveFromGroupRoomMap(groupID, data.username, socket.id);
         console.log(`left single room by ${data.username}`);
       }
@@ -286,7 +288,7 @@ export const chatController = async (
       console.log("User disconnected " + socket.id);
       const username: string | null = await getusernameFromSocketId(socket.id);
       if (username) {
-        await leaveRoom(username, socket.id);
+        await leaveRoom(username, socket);
         await removeUser(username, socket.id);
       }
     });
@@ -584,7 +586,7 @@ const joinRoom = async (username: string, socket: Socket) => {
   }
 };
 
-const leaveRoom = async (username: string, socket_id: string) => {
+const leaveRoom = async (username: string, socket: Socket) => {
   const unlock = await mutex.lock();
   try {
     const user = await prisma.user.findFirst({ where: { username: username } });
@@ -601,7 +603,8 @@ const leaveRoom = async (username: string, socket_id: string) => {
     const groups = result.groups;
     for (const group of groups) {
       const groupID = group.id.toString();
-      await RemoveFromGroupRoomMap(groupID, username, socket_id);
+      socket.leave(groupID);
+      await RemoveFromGroupRoomMap(groupID, username, socket.id);
     }
   } catch (err) {
     console.log(err);
