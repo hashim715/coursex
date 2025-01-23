@@ -822,7 +822,7 @@ export const joinGroups: RequestHandler = async (
           messages.length > 0 ? messages[0].message : "No messages",
         theme: group_joined.theme,
         type: group_joined.type,
-        sender: messages.length > 0 ? messages[0].sender : null,
+        sender: messages.length > 0 ? user.name : null,
         users: group_joined.users,
       };
       return res.status(200).json({
@@ -1437,7 +1437,7 @@ export const createFlashCards: RequestHandler = async (
         questions: questions,
         answers: answers,
         group_id: group.id,
-        creator: user.username,
+        creator: user.name,
       },
     });
 
