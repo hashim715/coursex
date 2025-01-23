@@ -2,17 +2,7 @@ import { prisma } from "../config/postgres";
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt_decode from "jwt-decode";
 import { firebase_admin } from "../config/firebase";
-
-export const getTokenFunc = (req: Request) => {
-  let token: string;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-  return token;
-};
+import { getTokenFunc } from "../utils/getTokenData";
 
 export const refreshNotificationToken: RequestHandler = async (
   req: Request,

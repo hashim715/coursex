@@ -4,4 +4,4 @@ import express from "express";
 
 export const clearRedisRouter: Router = express.Router();
 
-clearRedisRouter.route("/clearRedis").get(clearRedis);
+// clearRedisRouter.route("/clearRedis").get(clearRedis);

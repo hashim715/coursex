@@ -53,15 +53,15 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 app.use("/api/user", userRouter);
 
-app.use("/api/redis", clearRedisRouter);
+// app.use("/api/redis", clearRedisRouter);
 
-app.use("/api/chat", testingChatRouter);
+// app.use("/api/chat", testingChatRouter);
 
 app.use("/api/token", tokenRouter);
 
 app.use("/api/chats", chatRouter);
 
-app.use("/api/timeOut", timeOutRouter);
+// app.use("/api/timeOut", timeOutRouter);
 
 app.use("/api/verify", verificationRouter);
 

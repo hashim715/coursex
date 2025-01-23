@@ -15,7 +15,7 @@ import {
 } from "../utils/chatFunctions";
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { Message } from "../models/MessageSchema";
-import { getTokenFunc } from "./usercontroller";
+import { getTokenFunc } from "../utils/getTokenData";
 import jwt_decode from "jwt-decode";
 import { getStreamingChatbotResponse } from "./knowledgebaseController";
 import {
@@ -410,7 +410,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
 
     const groupIds = groups.groups.map((group: any) => group.id);
 
-    const metadata = await Message.aggregate([
+    const unreadCount = await Message.aggregate([
       {
         $match: {
           groupId: { $in: groupIds },
@@ -421,28 +421,55 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         },
       },
       {
+        $group: {
+          _id: "$groupId",
+          unreadCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const recentMessages = await Message.aggregate([
+      {
+        $match: {
+          groupId: { $in: groupIds },
+        },
+      },
+      {
         $sort: { timeStamp: -1 },
       },
       {
         $group: {
           _id: "$groupId",
-          unreadCount: { $sum: 1 },
           recentMessage: { $first: "$$ROOT" },
         },
       },
     ]);
 
     const combinedMetadata = groups.groups.map((group: any) => {
-      const mongoData = metadata.find((meta) => meta._id === group.id) || {
+      const unreadCountData = unreadCount.find(
+        (meta) => meta._id === group.id
+      ) || {
         unreadCount: 0,
-        recentMessage: "No Messages",
+      };
+
+      const recentMessage = recentMessages.find(
+        (recent_message) => recent_message._id === group.id
+      ) || {
+        recentMessage: "No messages",
       };
 
       return {
         group: group,
-        unreadCount: mongoData.unreadCount,
-        recentMessage: mongoData.recentMessage,
+        unreadCount: unreadCountData.unreadCount,
+        recentMessage: recentMessage.recentMessage,
+        sender: user.name,
       };
+    });
+
+    const sortedMetadata = combinedMetadata.sort((a, b) => {
+      const timeA = a.recentMessage?.timeStamp || 0;
+      const timeB = b.recentMessage?.timeStamp || 0;
+      return timeB - timeA;
     });
 
     await Message.updateMany(
@@ -457,7 +484,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       }
     );
 
-    return res.status(200).json({ success: true, message: combinedMetadata });
+    return res.status(200).json({ success: true, message: sortedMetadata });
   } catch (err) {
     if (!res.headersSent) {
       return res

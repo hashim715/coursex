@@ -265,6 +265,32 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       },
     });
 
+    const groupIds = [91, 94];
+
+    const groups = await prisma.group.findMany({
+      where: {
+        id: {
+          in: groupIds,
+        },
+      },
+    });
+
+    const promises = groups.map((group) => {
+      return async () => {
+        await prisma.group.update({
+          where: { id: group.id },
+          data: { users: { connect: { id: user.id } } },
+        });
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { groups: { connect: { id: group.id } } },
+        });
+      };
+    });
+
+    await Promise.all(promises);
+
     await sendToken(username, 200, res);
   } catch (err) {
     console.log(err);
