@@ -15,17 +15,7 @@ import { io } from "./chatController";
 import { validatePhoneNumber } from "../utils/validatePhoneNumber";
 import { validateEmail } from "../utils/checkvalidemail";
 import { v4 as uuidv4 } from "uuid";
-
-export const getTokenFunc = (req: Request) => {
-  let token: string;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-  return token;
-};
+import { getTokenFunc } from "../utils/getTokenData";
 
 export const registerWithPhone: RequestHandler = async (
   req: Request,
@@ -564,11 +554,11 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
     const filteredGroups: Array<any> = [];
 
     for (let group of groups_) {
-      const messages = await Message.find({
-        groupId: group.id,
-      })
-        .sort({ timeStamp: -1 })
-        .limit(1);
+      // const messages = await Message.find({
+      //   groupId: group.id,
+      // })
+      //   .sort({ timeStamp: -1 })
+      //   .limit(1);
 
       const group_data = {
         id: group.id,
@@ -580,14 +570,16 @@ export const getNonCourseGroupsByUser: RequestHandler = async (
         createdAt: group.createdAt,
         updatedAt: group.updatedAt,
         recent_message:
-          messages.length > 0
-            ? messages[0].type === "text"
-              ? messages[0].message
-              : messages[0].type
-            : "No messages",
+          // messages.length > 0
+          //   ? messages[0].type === "text"
+          //     ? messages[0].message
+          //     : messages[0].type
+          //   : "No messages",
+          "Loading...",
         theme: group.theme,
         type: group.type,
-        sender: messages.length > 0 ? messages[0].sender : null,
+        // sender: messages.length > 0 ? messages[0].sender : null,
+        sender: "",
         users: group.users,
       };
       filteredGroups.push(group_data);
@@ -1689,6 +1681,24 @@ export const blockUser: RequestHandler = async (
     return res
       .status(200)
       .json({ success: true, message: "User blocked successfully" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Something went wrong" });
+    }
+  }
+};
+
+export const getLatestVersion: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const app_latest_version = process.env.COURSEX_LATEST_VERSION;
+
+    return res.status(200).json({ success: true, message: app_latest_version });
   } catch (err) {
     if (!res.headersSent) {
       return res

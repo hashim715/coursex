@@ -6,9 +6,9 @@ import {
 } from "@google/generative-ai";
 import axios from "axios";
 import { redisClient } from "../config/redisClient";
-import { getTokenFunc } from "./usercontroller";
 import jwt_decode from "jwt-decode";
 import { prisma } from "../config/postgres";
+import { getTokenFunc } from "../utils/getTokenData";
 
 dotenv.config();
 
