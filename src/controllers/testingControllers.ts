@@ -56,7 +56,7 @@ export const joinExistingUsersToGroup = async (
         .json({ success: false, message: "User not found" });
     }
 
-    groups = groups.filter((group) => {
+    groups = groups.filter((group: any) => {
       const filteredUser = group.users.filter(
         (user_: any) => user_.id === user.id
       );
@@ -67,7 +67,7 @@ export const joinExistingUsersToGroup = async (
       return true;
     });
 
-    const promises = groups.map((group) => {
+    const promises = groups.map((group: any) => {
       return async () => {
         await prisma.group.update({
           where: { id: group.id },

@@ -466,7 +466,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       };
     });
 
-    const sortedMetadata = combinedMetadata.sort((a, b) => {
+    const sortedMetadata = combinedMetadata.sort((a: any, b: any) => {
       const timeA = a.recentMessage?.timeStamp || 0;
       const timeB = b.recentMessage?.timeStamp || 0;
       return timeB - timeA;

@@ -275,7 +275,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       },
     });
 
-    const promises = groups.map((group) => {
+    const promises = groups.map((group: any) => {
       return async () => {
         await prisma.group.update({
           where: { id: group.id },
