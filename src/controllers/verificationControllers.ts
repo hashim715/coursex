@@ -275,21 +275,33 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       },
     });
 
-    const promises = groups.map((group: any) => {
-      return async () => {
-        await prisma.group.update({
-          where: { id: group.id },
-          data: { users: { connect: { id: user.id } } },
-        });
+    for (const group of groups) {
+      await prisma.group.update({
+        where: { id: group.id },
+        data: { users: { connect: { id: user.id } } },
+      });
 
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { groups: { connect: { id: group.id } } },
-        });
-      };
-    });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { groups: { connect: { id: group.id } } },
+      });
+    }
 
-    await Promise.all(promises);
+    // const promises = groups.map((group: any) => {
+    //   return async () => {
+    //     await prisma.group.update({
+    //       where: { id: group.id },
+    //       data: { users: { connect: { id: user.id } } },
+    //     });
+
+    //     await prisma.user.update({
+    //       where: { id: user.id },
+    //       data: { groups: { connect: { id: group.id } } },
+    //     });
+    //   };
+    // });
+
+    // await Promise.all(promises);
 
     await sendToken(username, 200, res);
   } catch (err) {
