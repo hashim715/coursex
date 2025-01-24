@@ -73,7 +73,7 @@ app.use("/api/ai", aiRouter);
 
 app.use("/api/notification", notificationRouter);
 
-app.use("/api/testingRoutes", testingRouter);
+// app.use("/api/testingRoutes", testingRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {

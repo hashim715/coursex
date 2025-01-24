@@ -2,6 +2,7 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { prisma } from "../config/postgres";
 import { getTokenFunc } from "../utils/getTokenData";
 import jwt_decode from "jwt-decode";
+import { Message } from "../models/MessageSchema";
 
 export const checkingNumberofMembersInGroups = async (
   req: Request,
@@ -84,6 +85,28 @@ export const joinExistingUsersToGroup = async (
     await Promise.all(promises);
 
     return res.status(200).json({ success: true, message: "User added" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "You are not authorized user" });
+    }
+  }
+};
+
+export const deleteMessagesFromGroupsInTestingDatabase = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let groups = await prisma.group.findMany({});
+
+    const groupIds = groups.map((group: any) => group.id);
+
+    await Message.deleteMany({ groupId: { $in: groupIds } });
+
+    return res.status(200).json({ success: true, message: "Messages deleted" });
   } catch (err) {
     if (!res.headersSent) {
       return res
