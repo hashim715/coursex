@@ -16,7 +16,11 @@ const getSignedToken: Function = async (
     where: { username: username },
     data: { token: token } as { token: string },
   });
-  const tokens = { token: token, isbioDataUpdated: user.isbioDataUpdated };
+  const tokens = {
+    token: token,
+    isbioDataUpdated: user.isbioDataUpdated,
+    name: user.name,
+  };
   return tokens;
 };
 
@@ -30,6 +34,7 @@ export const sendToken = async (
     success: true,
     token: token.token,
     isbioDataUpdated: token.isbioDataUpdated,
+    name: token.name,
   });
 };
 

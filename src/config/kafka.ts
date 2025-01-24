@@ -129,7 +129,6 @@ const saveMessageToDB = async (message: string) => {
       username: string;
       name: string;
       email: string;
-      password: string;
       college: string;
       year: string;
       image: string;
@@ -141,8 +140,7 @@ const saveMessageToDB = async (message: string) => {
       verification_token: string | null;
       verification_token_expiry: string | null;
       verification_secret: string | null;
-      isUserVerified: boolean;
-      resetPasswordVerification: boolean;
+      isUserRegistered: boolean;
     };
 
     if (group_members) {

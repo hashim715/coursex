@@ -1,8 +1,8 @@
 import express from "express";
 import { Router } from "express";
 import {
-  register,
-  login,
+  registerWithEmail,
+  registerWithPhone,
   createGroup,
   createNonCourseGroup,
   testingController,
@@ -31,6 +31,7 @@ import {
   syncGroupDetailsDataWhenOffline,
   deleteAccount,
   blockUser,
+  getLatestVersion,
 } from "../controllers/usercontroller";
 import { protect } from "../middleware/auth";
 import multer from "multer";
@@ -41,8 +42,8 @@ const uploadGroupImage = multer({
 
 export const userRouter: Router = express.Router();
 
-userRouter.route("/register").post(register);
-userRouter.route("/login").post(login);
+userRouter.route("/registerWithEmail").post(registerWithEmail);
+userRouter.route("/registerWithPhone").post(registerWithPhone);
 userRouter.route("/createGroup").post(protect, createGroup);
 userRouter
   .route("/testing")
@@ -112,3 +113,5 @@ userRouter
 userRouter.route("/deleteUser").post(protect, deleteAccount);
 
 userRouter.route("/blockUser").post(protect, blockUser);
+
+userRouter.route("/getLatestVersion").get(getLatestVersion);

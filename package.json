@@ -41,6 +41,7 @@
     "@types/mongoose": "^5.11.97",
     "@types/nodemailer": "^6.4.15",
     "@types/qrcode": "^1.5.5",
+    "@types/twilio": "^3.19.2",
     "aws-sdk": "^2.1662.0",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.0",
@@ -69,6 +70,7 @@
     "react-native-screens": "3.31.1",
     "redis": "^4.6.5",
     "socket.io": "^4.6.1",
-    "uuidv4": "^6.2.13"
+    "twilio": "^5.4.2",
+    "uuid": "^11.0.3"
   }
 }

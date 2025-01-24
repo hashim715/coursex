@@ -15,7 +15,7 @@ import {
 } from "../utils/chatFunctions";
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { Message } from "../models/MessageSchema";
-import { getTokenFunc } from "./usercontroller";
+import { getTokenFunc } from "../utils/getTokenData";
 import jwt_decode from "jwt-decode";
 import { getStreamingChatbotResponse } from "./knowledgebaseController";
 import {
@@ -57,6 +57,7 @@ export const chatController = async (
     socket.on("join-single-room", async (data) => {
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
+        socket.join(groupID);
         await addSocketsToRoom(groupID, data.username, socket.id);
         console.log(`join single room by ${data.username}`);
       }
@@ -65,6 +66,7 @@ export const chatController = async (
     socket.on("leave-single-room", async (data) => {
       if (data.username && data.group_id) {
         const groupID = data.group_id.toString();
+        socket.leave(groupID);
         await RemoveFromGroupRoomMap(groupID, data.username, socket.id);
         console.log(`left single room by ${data.username}`);
       }
@@ -286,7 +288,7 @@ export const chatController = async (
       console.log("User disconnected " + socket.id);
       const username: string | null = await getusernameFromSocketId(socket.id);
       if (username) {
-        await leaveRoom(username, socket.id);
+        await leaveRoom(username, socket);
         await removeUser(username, socket.id);
       }
     });
@@ -410,7 +412,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
 
     const groupIds = groups.groups.map((group: any) => group.id);
 
-    const metadata = await Message.aggregate([
+    const unreadCount = await Message.aggregate([
       {
         $match: {
           groupId: { $in: groupIds },
@@ -421,28 +423,55 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         },
       },
       {
+        $group: {
+          _id: "$groupId",
+          unreadCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const recentMessages = await Message.aggregate([
+      {
+        $match: {
+          groupId: { $in: groupIds },
+        },
+      },
+      {
         $sort: { timeStamp: -1 },
       },
       {
         $group: {
           _id: "$groupId",
-          unreadCount: { $sum: 1 },
           recentMessage: { $first: "$$ROOT" },
         },
       },
     ]);
 
     const combinedMetadata = groups.groups.map((group: any) => {
-      const mongoData = metadata.find((meta) => meta._id === group.id) || {
+      const unreadCountData = unreadCount.find(
+        (meta) => meta._id === group.id
+      ) || {
         unreadCount: 0,
-        recentMessage: "No Messages",
+      };
+
+      const recentMessage = recentMessages.find(
+        (recent_message) => recent_message._id === group.id
+      ) || {
+        recentMessage: "No messages",
       };
 
       return {
         group: group,
-        unreadCount: mongoData.unreadCount,
-        recentMessage: mongoData.recentMessage,
+        unreadCount: unreadCountData.unreadCount,
+        recentMessage: recentMessage.recentMessage,
+        sender: user.name,
       };
+    });
+
+    const sortedMetadata = combinedMetadata.sort((a: any, b: any) => {
+      const timeA = a.recentMessage?.timeStamp || 0;
+      const timeB = b.recentMessage?.timeStamp || 0;
+      return timeB - timeA;
     });
 
     await Message.updateMany(
@@ -457,7 +486,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       }
     );
 
-    return res.status(200).json({ success: true, message: combinedMetadata });
+    return res.status(200).json({ success: true, message: sortedMetadata });
   } catch (err) {
     if (!res.headersSent) {
       return res
@@ -557,7 +586,7 @@ const joinRoom = async (username: string, socket: Socket) => {
   }
 };
 
-const leaveRoom = async (username: string, socket_id: string) => {
+const leaveRoom = async (username: string, socket: Socket) => {
   const unlock = await mutex.lock();
   try {
     const user = await prisma.user.findFirst({ where: { username: username } });
@@ -574,7 +603,8 @@ const leaveRoom = async (username: string, socket_id: string) => {
     const groups = result.groups;
     for (const group of groups) {
       const groupID = group.id.toString();
-      await RemoveFromGroupRoomMap(groupID, username, socket_id);
+      socket.leave(groupID);
+      await RemoveFromGroupRoomMap(groupID, username, socket.id);
     }
   } catch (err) {
     console.log(err);
