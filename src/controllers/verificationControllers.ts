@@ -265,7 +265,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       },
     });
 
-    const groupIds = [91, 94];
+    const groupIds = [16, 17];
 
     const groups = await prisma.group.findMany({
       where: {
