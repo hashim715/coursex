@@ -167,18 +167,18 @@ export const verifyEmailOnLogin: RequestHandler = async (
       .update(code + user.verification_secret)
       .digest("hex");
 
-    if (code !== "123456") {
+    if (user.verification_token !== verification_token) {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
     }
 
-    // if (Date.now() > new Date(user.verification_token_expiry).getTime()) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Your verification token is expired not valid",
-    //   });
-    // }
+    if (Date.now() > new Date(user.verification_token_expiry).getTime()) {
+      return res.status(400).json({
+        success: false,
+        message: "Your verification token is expired not valid",
+      });
+    }
 
     await prisma.user.update({
       where: { email: email },
@@ -253,18 +253,14 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       });
     }
 
-    // const verificationCheck = await twilio_client.verify.v2
-    //   .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
-    //   .verificationChecks.create({
-    //     code: code,
-    //     to: phone_number,
-    //   });
+    const verificationCheck = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verificationChecks.create({
+        code: code,
+        to: phone_number,
+      });
 
-    const verificationCheck = {
-      status: "approved",
-    };
-
-    if (code === "123456") {
+    if (verificationCheck.status !== "approved") {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
@@ -280,7 +276,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
       },
     });
 
-    const groupIds = [16, 17];
+    const groupIds = [91, 94];
 
     const groups = await prisma.group.findMany({
       where: {
@@ -374,16 +370,14 @@ export const verifyPhoneNumberOnLogin: RequestHandler = async (
         .json({ success: false, message: "User is not verified" });
     }
 
-    // const verificationCheck = await twilio_client.verify.v2
-    //   .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
-    //   .verificationChecks.create({
-    //     code: code,
-    //     to: phone_number,
-    //   });
+    const verificationCheck = await twilio_client.verify.v2
+      .services(process.env.TWILIO_ACCOUNT_SERVICE_COURSEX_SID)
+      .verificationChecks.create({
+        code: code,
+        to: phone_number,
+      });
 
-    const verificationCheck = { status: "approved" };
-
-    if (code !== "123456") {
+    if (verificationCheck.status !== "approved") {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
