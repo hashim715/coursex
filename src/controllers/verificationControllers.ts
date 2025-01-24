@@ -233,7 +233,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
 
     const username = uuid;
 
-    const user = await prisma.user.findFirst({ where: { username: username } });
+    let user = await prisma.user.findFirst({ where: { username: username } });
 
     if (user) {
       return res.status(400).json({
@@ -259,7 +259,7 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
         .json({ success: false, message: "Code did not match" });
     }
 
-    await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         name: "John",
         username: username,
@@ -278,8 +278,6 @@ export const verifyPhoneNumberOnRegister: RequestHandler = async (
         },
       },
     });
-
-    console.log(groups);
 
     for (const group of groups) {
       await prisma.group.update({
