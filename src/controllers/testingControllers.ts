@@ -122,64 +122,6 @@ export const joinExistingUsersToGroup = async (
   }
 };
 
-export const getAssistantGroupNamesWithGroupMembers = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const assistantIds = [
-      "1736804333983-assistant",
-      "1738200542368-assistant",
-      "1736810814881-assistant",
-      "1736975315631-assistant",
-      "1736975076979-assistant",
-      "1736879887732-assistant",
-      "1736804405372-assistant",
-      "1736804263795-assistant",
-      "1736804236635-assistant",
-    ];
-
-    const assistants = await prisma.assistant.findMany({
-      where: {
-        chatbotName: { in: assistantIds },
-      },
-      select: {
-        group_id: true,
-      },
-    });
-
-    const groups = [];
-
-    for (const assistant of assistants) {
-      const groupId = assistant.group_id;
-
-      const group = await prisma.group.findUnique({
-        where: {
-          id: groupId,
-        },
-        include: {
-          _count: {
-            select: {
-              users: true,
-            },
-          },
-        },
-      });
-
-      groups.push(group);
-    }
-
-    return res.status(200).json({ success: true, message: groups });
-  } catch (err) {
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "You are not authorized user" });
-    }
-  }
-};
-
 export const verifyAllTheUsers = async (
   req: Request,
   res: Response,
