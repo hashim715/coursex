@@ -86,3 +86,26 @@ export const joinExistingUsersToGroup = async (
     }
   }
 };
+
+export const verifyAllTheUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await prisma.user.updateMany({
+      where: {},
+      data: { isUserRegistered: true },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "All the users updated" });
+  } catch (err) {
+    if (!res.headersSent) {
+      return res
+        .status(500)
+        .json({ success: false, message: "You are not authorized user" });
+    }
+  }
+};

@@ -4,6 +4,8 @@ import { Router } from "express";
 import {
   checkingNumberofMembersInGroups,
   joinExistingUsersToGroup,
+  deleteMessagesFromGroupsInTestingDatabase,
+  verifyAllTheUsers,
 } from "../controllers/testingControllers";
 
 export const testingRouter: Router = express.Router();
@@ -12,4 +14,10 @@ export const testingRouter: Router = express.Router();
 //   .route("/getGroupsWithZeroMembers")
 //   .get(checkingNumberofMembersInGroups);
 
-// testingRouter.route("/addExistingUsersToGroups").get(joinExistingUsersToGroup);
+// testingRouter.route("/addUserToGroups").get(protect, joinExistingUsersToGroup);
+
+// testingRouter
+//   .route("/deleteMessagesFromGroups")
+//   .get(deleteMessagesFromGroupsInTestingDatabase);
+
+// testingRouter.route("/verifyAlltheusers").get(verifyAllTheUsers);
