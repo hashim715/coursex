@@ -167,7 +167,7 @@ export const verifyEmailOnLogin: RequestHandler = async (
       .update(code + user.verification_secret)
       .digest("hex");
 
-    if (code === "123456") {
+    if (code !== "123456") {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });
@@ -383,7 +383,7 @@ export const verifyPhoneNumberOnLogin: RequestHandler = async (
 
     const verificationCheck = { status: "approved" };
 
-    if (code === "123456") {
+    if (code !== "123456") {
       return res
         .status(400)
         .json({ success: false, message: "Code did not match" });

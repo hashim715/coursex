@@ -4,6 +4,7 @@ import {
   checkingNumberofMembersInGroups,
   joinExistingUsersToGroup,
   deleteMessagesFromGroupsInTestingDatabase,
+  verifyAllTheUsers,
 } from "../controllers/testingControllers";
 import { protect } from "../middleware/auth";
 
@@ -18,3 +19,5 @@ export const testingRouter: Router = express.Router();
 // testingRouter
 //   .route("/deleteMessagesFromGroups")
 //   .get(deleteMessagesFromGroupsInTestingDatabase);
+
+// testingRouter.route("/verifyAlltheusers").get(verifyAllTheUsers);
