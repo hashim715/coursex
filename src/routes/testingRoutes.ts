@@ -6,6 +6,7 @@ import {
   joinExistingUsersToGroup,
   deleteMessagesFromGroupsInTestingDatabase,
   verifyAllTheUsers,
+  getAssistantGroupNamesWithGroupMembers,
 } from "../controllers/testingControllers";
 
 export const testingRouter: Router = express.Router();
@@ -21,3 +22,7 @@ export const testingRouter: Router = express.Router();
 //   .get(deleteMessagesFromGroupsInTestingDatabase);
 
 // testingRouter.route("/verifyAlltheusers").get(verifyAllTheUsers);
+
+// testingRouter
+//   .route("/getAssistantGroupNamesWithGroupMembers")
+//   .get(getAssistantGroupNamesWithGroupMembers);
