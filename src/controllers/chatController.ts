@@ -468,20 +468,27 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
           where: { username: recentMessage.recentMessage.sender },
         });
 
-        combinedMetadata.push({
-          group: group,
-          unreadCount: unreadCountData.unreadCount,
-          recentMessage: recentMessage.recentMessage,
-          sender: user_.name,
-        });
-      } else {
-        combinedMetadata.push({
-          group: group,
-          unreadCount: unreadCountData.unreadCount,
-          recentMessage: recentMessage.recentMessage,
-          sender: recentMessage.sender,
-        });
-      }
+      // if (user_) {
+      //   combinedMetadata.push({
+      //     group: group,
+      //     unreadCount: unreadCountData.unreadCount,
+      //     recentMessage: recentMessage.recentMessage,
+      //     sender: user.name,
+      //   });
+      // } else {
+      //   combinedMetadata.push({
+      //     group: group,
+      //     unreadCount: unreadCountData.unreadCount,
+      //     recentMessage: recentMessage.recentMessage,
+      //     sender: "",
+      //   });
+      // }
+      combinedMetadata.push({
+        group: group,
+        unreadCount: unreadCountData.unreadCount,
+        recentMessage: recentMessage.recentMessage,
+        sender: user.name,
+      });
     }
 
     // const combinedMetadata = groups.groups.map((group: any) => {
