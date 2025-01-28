@@ -447,7 +447,9 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       },
     ]);
 
-    const combinedMetadata = groups.groups.map((group: any) => {
+    const combinedMetadata = [];
+
+    for (const group of groups.groups) {
       const unreadCountData = unreadCount.find(
         (meta) => meta._id === group.id
       ) || {
@@ -458,15 +460,29 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         (recent_message) => recent_message._id === group.id
       ) || {
         recentMessage: "No messages",
+        sender: "",
       };
 
-      return {
-        group: group,
-        unreadCount: unreadCountData.unreadCount,
-        recentMessage: recentMessage.recentMessage,
-        sender: user.name,
-      };
-    });
+      const user_ = await prisma.user.findFirst({
+        where: { username: recentMessage.sender },
+      });
+
+      if (user_) {
+        combinedMetadata.push({
+          group: group,
+          unreadCount: unreadCountData.unreadCount,
+          recentMessage: recentMessage.recentMessage,
+          sender: user_.name,
+        });
+      } else {
+        combinedMetadata.push({
+          group: group,
+          unreadCount: unreadCountData.unreadCount,
+          recentMessage: recentMessage.recentMessage,
+          sender: "",
+        });
+      }
+    }
 
     const sortedMetadata = combinedMetadata.sort((a: any, b: any) => {
       const timeA = a.recentMessage?.timeStamp || 0;
