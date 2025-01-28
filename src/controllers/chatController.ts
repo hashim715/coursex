@@ -447,9 +447,50 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
       },
     ]);
 
-    const combinedMetadata = [];
+    // const combinedMetadata = [];
 
-    for (const group of groups.groups) {
+    // for (const group of groups.groups) {
+    //   const unreadCountData = unreadCount.find(
+    //     (meta) => meta._id === group.id
+    //   ) || {
+    //     unreadCount: 0,
+    //   };
+
+    //   const recentMessage = recentMessages.find(
+    //     (recent_message) => recent_message._id === group.id
+    //   ) || {
+    //     recentMessage: "No messages",
+    //     sender: "",
+    //   };
+
+    //   const user_ = await prisma.user.findFirst({
+    //     where: { username: recentMessage.sender },
+    //   });
+
+    //   // if (user_) {
+    //   //   combinedMetadata.push({
+    //   //     group: group,
+    //   //     unreadCount: unreadCountData.unreadCount,
+    //   //     recentMessage: recentMessage.recentMessage,
+    //   //     sender: user.name,
+    //   //   });
+    //   // } else {
+    //   //   combinedMetadata.push({
+    //   //     group: group,
+    //   //     unreadCount: unreadCountData.unreadCount,
+    //   //     recentMessage: recentMessage.recentMessage,
+    //   //     sender: "",
+    //   //   });
+    //   // }
+    //   combinedMetadata.push({
+    //     group: group,
+    //     unreadCount: unreadCountData.unreadCount,
+    //     recentMessage: recentMessage.recentMessage,
+    //     sender: user.name,
+    //   });
+    // }
+
+    const combinedMetadata = groups.groups.map((group: any) => {
       const unreadCountData = unreadCount.find(
         (meta) => meta._id === group.id
       ) || {
@@ -463,32 +504,13 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         sender: "",
       };
 
-      const user_ = await prisma.user.findFirst({
-        where: { username: recentMessage.sender },
-      });
-
-      // if (user_) {
-      //   combinedMetadata.push({
-      //     group: group,
-      //     unreadCount: unreadCountData.unreadCount,
-      //     recentMessage: recentMessage.recentMessage,
-      //     sender: user.name,
-      //   });
-      // } else {
-      //   combinedMetadata.push({
-      //     group: group,
-      //     unreadCount: unreadCountData.unreadCount,
-      //     recentMessage: recentMessage.recentMessage,
-      //     sender: "",
-      //   });
-      // }
-      combinedMetadata.push({
+      return {
         group: group,
         unreadCount: unreadCountData.unreadCount,
         recentMessage: recentMessage.recentMessage,
         sender: user.name,
-      });
-    }
+      };
+    });
 
     const sortedMetadata = combinedMetadata.sort((a: any, b: any) => {
       const timeA = a.recentMessage?.timeStamp || 0;
