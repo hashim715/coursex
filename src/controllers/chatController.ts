@@ -463,9 +463,9 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         sender: "",
       };
 
-      if (recentMessage.sender.trim()) {
+      if (recentMessage.recentMessage !== "No messages") {
         const user_ = await prisma.user.findFirst({
-          where: { username: recentMessage.sender },
+          where: { username: recentMessage.recentMessage.sender },
         });
 
         combinedMetadata.push({
@@ -479,7 +479,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
           group: group,
           unreadCount: unreadCountData.unreadCount,
           recentMessage: recentMessage.recentMessage,
-          sender: "",
+          sender: recentMessage.sender,
         });
       }
     }
