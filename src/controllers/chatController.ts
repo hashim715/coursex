@@ -463,11 +463,11 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
         sender: "",
       };
 
-      const user_ = await prisma.user.findFirst({
-        where: { username: recentMessage.sender },
-      });
+      if (recentMessage.sender.trim()) {
+        const user_ = await prisma.user.findFirst({
+          where: { username: recentMessage.sender },
+        });
 
-      if (user_) {
         combinedMetadata.push({
           group: group,
           unreadCount: unreadCountData.unreadCount,
@@ -526,6 +526,7 @@ export const syncUserMetadataForAllGroups: RequestHandler = async (
 
     return res.status(200).json({ success: true, message: sortedMetadata });
   } catch (err) {
+    console.log(err);
     if (!res.headersSent) {
       return res
         .status(500)
