@@ -4,12 +4,12 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_ACCOUNT_TOKEN;
 export const twilio_client = twilio(accountSid, authToken);
 
-// async function createService() {
-//   const service = await twilio_client.verify.v2.services.create({
-//     friendlyName: "CourseX",
-//   });
-//   console.log(service.sid);
-// }
+async function createService() {
+  const service = await twilio_client.verify.v2.services.create({
+    friendlyName: "Protect",
+  });
+  console.log(service.sid);
+}
 
 // createService();
 

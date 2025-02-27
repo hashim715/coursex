@@ -219,7 +219,7 @@ const saveMessageToDB = async (message: string) => {
       });
     }
 
-    await Promise.all(
+    await Promise.allSettled(
       group_members.users.map((user: any) =>
         sendNotification(user.username, parseInt(parsedMessage.groupID))
       )
