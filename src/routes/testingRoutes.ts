@@ -23,6 +23,6 @@ export const testingRouter: Router = express.Router();
 
 // testingRouter.route("/verifyAlltheusers").get(verifyAllTheUsers);
 
-// testingRouter
-//   .route("/getAssistantGroupNamesWithGroupMembers")
-//   .get(getAssistantGroupNamesWithGroupMembers);
+testingRouter
+  .route("/getAssistantGroupNamesWithGroupMembers")
+  .get(getAssistantGroupNamesWithGroupMembers);

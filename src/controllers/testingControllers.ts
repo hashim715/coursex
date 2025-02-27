@@ -129,12 +129,15 @@ export const getAssistantGroupNamesWithGroupMembers = async (
 ) => {
   try {
     const assistantIds = [
-      "1736810814881-assistant",
-      "1737940229997-assistant",
-      "1737746140092-assistant",
-      "1737743387034-assistant",
-      "1737742840586-assistant",
       "1736804333983-assistant",
+      "1738200542368-assistant",
+      "1736810814881-assistant",
+      "1736975315631-assistant",
+      "1736975076979-assistant",
+      "1736879887732-assistant",
+      "1736804405372-assistant",
+      "1736804263795-assistant",
+      "1736804236635-assistant",
     ];
 
     const assistants = await prisma.assistant.findMany({
