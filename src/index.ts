@@ -25,6 +25,8 @@ import timeout from "connect-timeout";
 import cron from "node-cron";
 import { prisma } from "./config/postgres";
 
+//final version
+
 dotenv.config();
 
 const app: Application = express();
