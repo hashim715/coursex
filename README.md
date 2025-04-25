@@ -44,7 +44,11 @@ A feature-rich, scalable real-time chat application built using modern technolog
 
 ## 📸 Screenshot
 
-> ![alt text](screenshots/screenshot1.jpeg) > ![alt text](screenshots/screenshot2.jpeg) > ![alt text](screenshots/screenshot3.jpeg)
+<p float="left">
+  <img src="screenshots/screenshot1.jpeg" width="250"/>
+  <img src="screenshots/screenshot2.jpeg" width="250"/>
+  <img src="screenshots/screenshot3.jpeg" width="250"/>
+</p>
 
 ## 🧪 Testing & Monitoring
 
