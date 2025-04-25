@@ -44,7 +44,7 @@ A feature-rich, scalable real-time chat application built using modern technolog
 
 ## 📸 Screenshot
 
-> _[Include screenshot or demo GIF of chat interface with real-time messages and image uploads.]_
+> ![alt text](screenshots/screenshot1.jpeg) > ![alt text](screenshots/screenshot2.jpeg) > ![alt text](screenshots/screenshot3.jpeg)
 
 ## 🧪 Testing & Monitoring
 
