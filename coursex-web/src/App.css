@@ -1,0 +1,687 @@
+/* Stop the screen from being horizontally scrollable*/
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.Screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  height: auto; /* Ensure the screen takes up at least the full viewport height */
+  width: 100vw;
+  background-color: black;
+  overflow-x: hidden;
+}
+.heading{
+  color: #ffffff;
+  font-size: 28px;
+  font-family: "Archivo";
+  line-height: 42px;
+  font-weight: 500;
+}
+.top_div{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding-left: 10vw;
+  align-items: center;
+  width: 100vw;
+  height: 10vh;
+}
+.upper_div{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  width: 90vw;
+  height: 80vh;
+  /* background-color:green; */
+}
+.upper_div_left{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: left;
+  width: 50%;
+  height: 30vh;
+}
+.upper_div_right{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 50%;
+  height: auto;
+  /* background-color: red; */
+}
+.upper_div_left_bottom{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  height: auto;
+}
+.button{
+  cursor: pointer;
+  width: 357px;
+  height: 60px;
+  padding: 0px 8px;
+  border: 0;
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0px 2px 8px rgba(0,0,0,0.16);
+  background-color: #ffffff;
+  color: #000000;
+  font-size: 24px;
+  font-family: "Archivo";
+  line-height: 31px;
+  outline: none;
+  margin-right: 1.5vw
+}
+.button_2{
+  width: 357px;
+  height: 60px;
+  padding: 0px 8px;
+  border: 1px solid #ffffff;
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0px 2px 8px rgba(0,0,0,0.16);
+  background-color: #000000;
+  color: #ffffff;
+  font-size: 24px;
+  font-family: "Archivo";
+  line-height: 31px;
+  outline: none;
+}
+.tagline {
+  color: white;
+  font-size: 75px;
+  font-family: "Archivo";
+  font-weight: 700;
+  margin-bottom: 50px; /* Adjust this value as needed */
+}
+.tagline_2 {
+  color: #e5e5e5;
+  font-size: 36px;
+  font-family: "Archivo";
+  font-weight: 700;
+  margin-top: 0; /* Remove extra space above */
+  margin-bottom: 100px;
+}
+.trustedBy{
+  color: #7f7f7f;
+  font-size: 24px;
+  font-family: "Archivo";
+  line-height: 31px;
+  text-align: center;
+  font-weight: 700;
+}
+.collegeBox{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 50%;
+  height: auto;
+}
+.MITLogo{
+  width: 8vw;
+  height: auto;
+  opacity: 0.6;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.StanfordLogo{
+  width: 12vw;
+  height: auto;
+  opacity: 0.6;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.YaleLogo{
+  width: 8vw;
+  height: auto;
+  opacity: 0.6;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  margin-top: 40px;
+}
+.RiceLogo{
+  width: 10vw;
+  height: auto;
+  opacity: 0.6;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  margin-top: 40px;
+}
+.otherCollege{
+  width: 12vw;
+  height: auto;
+  opacity: 0.6;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  margin-top: 40px;
+  align-self: center;
+}
+.middleDev{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100vw;
+  height: auto;
+  margin-top: 20vh;
+}
+.middleDevLeft {
+  display: flex; /* Flexbox layout */
+  justify-content: center; /* Horizontal centering */
+  align-items: center; /* Vertical centering */
+  width: 50vw; /* Adjust width to match image/container */
+  height: 100%; /* Adjust height to match image/container */
+  position: relative; /* Ensure absolute positioning works inside */
+}
+.middleDevRight {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 50vw;
+  height: auto;
+  border-radius: 12px; /* Optional: rounded corners for the border */
+  padding: 10px; /* Add padding inside the border */
+  /* background-color: red; */
+}
+.message {
+  color: white;
+  font-size: 48px;
+  font-family: "Archivo";
+  font-weight: 500;
+  line-height: 62px;
+  text-align: center;
+  max-width: 90%; /* Ensure text wraps nicely */
+}
+.message_2 {
+  color: #ffffff;
+  font-size: 64px;
+  font-family: "Archivo";
+  font-weight: 500;
+  text-align: center;
+  margin-top: 20vh;
+  margin-bottom: 10px; /* Adjust to reduce the space below */
+}
+
+.message_3 {
+  color: #c2c2c2;
+  font-size: 30px;
+  font-family: "Archivo";
+  font-weight: 500;
+  line-height: 59px;
+  text-align: center;
+  margin-top: 5px; /* Adjust to reduce the space above */
+}
+.theme{
+  width: 50vw;
+  height: auto;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.message_4{
+  color: #ffffff;
+  font-size: 48px;
+  font-family: "Archivo";
+  font-weight: 500;
+  line-height: 62px;
+  text-align: center;
+}
+.submit {
+  cursor: pointer;
+  width: 25vw;
+  height: 50px;
+  padding: 0px 8px;
+  border: 0;
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(3,3,3,0.1);
+  background-color: white;
+  color: #000000;
+  font-size: 24px;
+  font-family: "Roboto";
+  line-height: 31px;
+  outline: none;
+  margin-top: 20px;
+}
+.inputBox {
+  width: 25vw;
+  height: 50px;
+  padding: 0px 8px;
+  border: 1px solid #505050;
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+  background-color: #000000;
+  color: #e5e5e5;
+  font-size: 24px;
+  font-family: "Inter";
+  line-height: 31px;
+  outline: none;
+  margin-top: 20px;
+}
+.bottomDev {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100vw;
+  background-color: black;
+  height: 8vh; /* Adjust as needed */
+  margin-top: auto; /* Push this to the bottom of the container */
+}
+.bottomLeft{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20vw;
+  height: 10vh;
+}
+.bottomRight{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 20vw;
+  height: 10vh;
+  margin-right: 5vw;
+}
+.bottomLeftInner{
+  display: none
+}
+.featureBox{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: top;
+  width: 100vw;
+  height:auto;
+}
+.featureImage {
+  width: 20vw;
+  height: auto;
+  border-radius: 8px; /* Keep rounded corners for the images */
+  margin: 0 10px; /* Add horizontal gap between images */
+  border: 2px solid ; /* Correctly defines the border */
+}
+/* Carousel container */
+.carousel-container {
+  display: flex; /* Arrange slides in a row */
+  overflow: hidden;
+  /* Hide slides outside the visible area */
+  width: 23vw; /* Full width of the container */
+  height: 700px; /* Full height of the container */
+  border-radius: 20px;
+  border: 2px solid white; /* White border */
+}
+
+/* Slide wrapper */
+.carousel-slide {
+  display: flex; /* Arrange images horizontally */
+  transition: transform 0.5s ease-in-out; /* Smooth sliding animation */
+  width: 100%; /* Ensure it matches the container width */
+  --translateX: calc(-130%); 
+}
+
+/* Feature image */
+.featureImage {
+  flex-shrink: 0; /* Prevent images from shrinking */
+  width: 100%; /* Full width for each slide */
+  height: auto;
+  border-radius: 8px; /* Rounded corners */
+  border: 2px solid ; /* White border */
+  object-fit: cover; /* Ensure images fill the area properly */
+}
+
+.inputContainer{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  width: 25vw;
+  height: 20vw;
+
+}
+
+.inputBox::placeholder {
+  color: #7f7f7f;
+}
+.submitBox{
+  width: 30vw;
+  height: 20vw;
+  flex-direction: row;
+  justify-content: space-between;
+  display: flex;
+  margin-top: 20px;
+}
+
+.coursex{
+  color: #fafafa;
+  font-size: 20px;
+  font-family: "Inter";
+  font-weight: 700;
+  text-align: center;
+}
+.terms{
+  color: #fafafa;
+  font-size: 18px;
+  font-family: "Inter";
+  line-height: 23px;
+  text-align: center;
+  cursor: pointer;
+}
+/* Slide Styles */
+.slides-container {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+}
+
+.slide {
+  width: 20vw;
+  height: 700px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid gray; /* White solid border */
+  box-sizing: border-box; /* Ensures padding and borders are included in dimensions */
+}
+
+/* Slider Styles */
+.slider {
+  position: relative;
+  height: 100%;
+}
+
+/* Dots Container Styles */
+.dots-container {
+  display: flex;
+  justify-content: center;
+}
+
+/* Dot Styles */
+.dot {
+  margin: 0 3px;
+  cursor: pointer;
+  font-size: 10px;
+  color: white;
+  margin-top: 10px;
+}
+.dot.active {
+  color: white;
+}
+
+.container-style {
+  width: 22vw;
+  height: 700px
+}
+
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .heading {
+    color: #ffffff;
+    font-size: 18px;
+    font-family: "Archivo";
+    font-weight: 500;
+  }
+  .top_div {
+    padding-left: 20vw;
+    height: 8vh;
+  }
+  .upper_div {
+    flex-direction: column;
+    width: 70vw;
+    margin-right: 10vw;
+    height: auto;
+    justify-content: flex-start;
+    align-items: center;
+
+  }
+  .upper_div_left {
+    width: 70vw;
+    height: auto;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+  }
+  .upper_div_right {
+    width: 70vw;
+    height: auto;
+    justify-content: center;
+    align-items: center;
+  }
+  .upper_div_left_bottom {
+    width: 70vw;
+    height: auto;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  .tagline {
+    font-size: 40px;
+    margin-bottom: 20px;
+    margin-top: 40px;
+  }
+  .tagline_2 {
+    font-size: 18px;
+    margin-bottom: 40px;
+  }
+  .button {
+    width: 80vw;
+    height: 40px;
+    font-size: 16px;
+    margin-top: 10px;;
+    margin-right: 5vw;
+    margin-left: 15vw;
+  }
+  .button_2 {
+    width: 80vw;
+    height: 40px;
+    font-size: 16px;
+    margin-top: 15px;
+    margin-right: 5vw;
+    margin-left: 15vw;
+  }
+  .trustedBy {
+    font-size: 13px;
+    margin-top: 50px;
+  }
+  .collegeBox {
+    width: 60vw;
+
+  }
+  .MITLogo {
+    width: 20vw;
+    height: auto;
+    margin-top: 10px;
+  }
+  .StanfordLogo {
+    width: 30vw;
+    height: auto;
+    margin-top: 10px;
+  }
+  .YaleLogo {
+    width: 20vw;
+    height: auto;
+    margin-top: 10px;
+  }
+  .RiceLogo {
+    width: 25vw;
+    height: auto;
+    margin-top: 10px;
+  }
+  .otherCollege {
+    width: 30vw;
+    height: auto;
+    margin-top: 25px;
+  }
+  .middleDev {
+    flex-direction: column;
+    margin-top: 10px;
+  }
+  .middleDevLeft {
+    width: 70vw;
+    height: auto;
+  }
+  .middleDevRight {
+    width: 80vw;
+    height: auto;
+    margin-top: 10px;
+  }
+  .message {
+    font-size: 26px;
+    line-height: 31px;
+    margin-top: 80px;
+  }
+  .message_2 {
+    font-size: 28px;
+    margin-top: 80px;
+  }
+  .message_3 {
+    font-size: 20px;
+    line-height: 25px;
+    margin-top: 20px;
+    width: 60vw;
+  }
+  .theme {
+    width: 95vw;
+    height: auto;
+    margin-top:20px;
+  }
+  .message_4 {
+    font-size: 24px;
+    line-height: 31px;
+    margin-top: 50px;
+    width: 90vw;
+
+  }
+  .featureBox{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: top;
+    width: 90vw;
+    height:auto;
+  }
+  .featureImage {
+    width: 95vw;
+    height: auto;
+    border-radius: 8px; /* Keep rounded corners for the images */
+    margin: 0 2px; /* Add horizontal gap between images */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add a shadow to the images */
+  }
+  .inputBox {
+    width: 80vw;
+    height: 40px;
+    font-size: 12px;
+    margin-top: 15px;
+  }
+  .submit {
+    width: 80vw;
+    height: 40px;
+    font-size: 15px;
+    margin-top: 25px;
+    font-weight: 500;
+  }
+
+  .bottomDev {
+    height: 15vh;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: left;
+    margin-top: 50px;
+    border-top: 1px solid white; /* Adds a white border at the top */
+}
+  .bottomLeft {
+    width: 50vw;
+    display: flex; /* Ensure it's a flex container */
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; /* Correct alignment property */
+    text-align: left; /* Ensures text content aligns left */
+  }
+  .bottomRight {
+    display: none;
+  }
+  .bottomLeftInner{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: left;
+    width: 50vw;
+    height: auto
+  }
+
+  /* Input Fields */
+  .inputContainer {
+    width: 80vw;
+    height: auto;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .coursex{
+    color: #fafafa;
+    font-size: 18px;
+    font-family: "Inter";
+    font-weight: 700;
+    text-align: left;
+    margin-left: 5vw;
+  }
+  .terms{
+    color: #fafafa;
+    font-size: 10px;
+    font-family: "Inter";
+    line-height: 1px;
+    text-align: left;
+    margin-left: 5vw;
+    cursor: pointer;
+  }
+  .container-style {
+    width: 95vw;
+    height: 700px
+  }
+  .slide{
+    width: 95vw;
+    height: 600px;
+  }
+  .carousel-container {
+    width: 95vw;
+    height: 600px;
+  }
+  .carousel-slide {
+    display: flex; /* Arrange images horizontally */
+    transition: transform 0.5s ease-in-out; /* Smooth sliding animation */
+    width: 100%; /* Ensure it matches the container width */
+    --translateX: calc(-150%); 
+  }
+}
+
+/* when the phone is in landscape mode */
+@media (max-width: 768px) and (orientation: landscape) {
+  .bottomDev{
+    width: 100vw;
+    height: 20vh;
+  }
+  .bottomRight{
+    width: 40vw;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
